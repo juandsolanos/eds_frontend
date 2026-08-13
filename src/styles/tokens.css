@@ -1,0 +1,83 @@
+:root {
+  /* Paleta — inspirada en el display de un surtidor de combustible */
+  --bg: #14181f;
+  --surface: #1c232d;
+  --surface-raised: #232b36;
+  --border: #2e3742;
+  --text: #e8ecf1;
+  --text-muted: #8b95a5;
+  --accent: #f2a93b; /* ámbar, como el display digital de una bomba */
+  --accent-soft: rgba(242, 169, 59, 0.14);
+  --success: #4caf6d;
+  --success-soft: rgba(76, 175, 109, 0.14);
+  --danger: #e5484d;
+  --danger-soft: rgba(229, 72, 77, 0.14);
+
+  /* Tipografía */
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Layout */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* Utilidad: números grandes tipo "display" de surtidor */
+.readout {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--accent-soft);
+}
