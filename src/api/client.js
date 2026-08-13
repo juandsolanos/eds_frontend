@@ -3,7 +3,7 @@
 // token, y centraliza el manejo de errores para que cada componente no
 // tenga que repetir la lógica de "revisar response.ok".
 
-const API_URL = import.meta.env.VITE_API_URL || "https://eds-backend-w91z.onrender.co";
+const API_URL = import.meta.env.VITE_API_URL || "https://localhost:8000";
 
 class ApiError extends Error {
   constructor(status, detail) {
@@ -16,7 +16,7 @@ class ApiError extends Error {
 async function request(path, { method = "GET", body, token } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  console.log("soy API_URL", API_URL)
+
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
