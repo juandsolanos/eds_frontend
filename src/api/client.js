@@ -3,7 +3,7 @@
 // token, y centraliza el manejo de errores para que cada componente no
 // tenga que repetir la lógica de "revisar response.ok".
 
-const API_URL = import.meta.env.VITE_API_URL || "https://eds-backend-w91z.onrender.com/";
+const API_URL = import.meta.env.VITE_API_URL || "https://eds-backend-w91z.onrender.com";
 
 class ApiError extends Error {
   constructor(status, detail) {
