@@ -16,7 +16,7 @@ class ApiError extends Error {
 async function request(path, { method = "GET", body, token } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
-
+  console.log("soy API_URL", API_URL)
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
