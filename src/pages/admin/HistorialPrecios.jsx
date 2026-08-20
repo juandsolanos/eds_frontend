@@ -13,17 +13,19 @@ export default function HistorialPrecios() {
   const [historial, setHistorial] = useState([]);
   const [error, setError] = useState(null);
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async ({ signal } = {}) => {
     try {
-      const data = await api.listarHistorialPrecios(token, codigo || undefined);
+      const data = await api.listarHistorialPrecios(token, codigo || undefined, { signal });
       setHistorial(data);
     } catch (err) {
-      setError(err.detail);
+      if (err.name !== "AbortError") setError(err.detail);
     }
   }, [token, codigo]);
 
   useEffect(() => {
-    cargar();
+    const ctrl = new AbortController();
+    cargar({ signal: ctrl.signal });
+    return () => ctrl.abort();
   }, [cargar]);
 
   return (

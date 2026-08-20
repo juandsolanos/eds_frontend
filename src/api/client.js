@@ -5,6 +5,12 @@
 
 const API_URL = import.meta.env.VITE_API_URL || "https://localhost:8000";
 
+let onUnauthorized = null;
+
+export function setOnUnauthorized(callback) {
+  onUnauthorized = callback;
+}
+
 class ApiError extends Error {
   constructor(status, detail) {
     super(detail || `Error ${status}`);
@@ -13,7 +19,7 @@ class ApiError extends Error {
   }
 }
 
-async function request(path, { method = "GET", body, token } = {}) {
+async function request(path, { method = "GET", body, token, signal } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -21,6 +27,7 @@ async function request(path, { method = "GET", body, token } = {}) {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    signal,
   });
 
   // 204 No Content no trae body que parsear
@@ -29,6 +36,9 @@ async function request(path, { method = "GET", body, token } = {}) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 401 && onUnauthorized) {
+      onUnauthorized();
+    }
     const detail = data?.detail || "Ocurrió un error inesperado.";
     throw new ApiError(response.status, detail);
   }
@@ -39,7 +49,7 @@ async function request(path, { method = "GET", body, token } = {}) {
 // Para subir archivos usamos FormData en vez de JSON — el navegador arma
 // el Content-Type (multipart/form-data con boundary) automáticamente,
 // por eso NO seteamos el header manualmente aquí, a diferencia de `request`.
-async function requestArchivo(path, { archivo, token }) {
+async function requestArchivo(path, { archivo, token, signal }) {
   const formData = new FormData();
   formData.append("archivo", archivo);
 
@@ -47,11 +57,15 @@ async function requestArchivo(path, { archivo, token }) {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
+    signal,
   });
 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 401 && onUnauthorized) {
+      onUnauthorized();
+    }
     throw new ApiError(response.status, data?.detail || "Ocurrió un error inesperado.");
   }
 
@@ -66,13 +80,13 @@ async function requestArchivo(path, { archivo, token }) {
 // repetir la construcción de la URL.
 function crudEndpoints(basePath) {
   return {
-    listar: (token) => request(`${basePath}/`, { token }),
-    obtener: (token, id) => request(`${basePath}/${encodeURIComponent(id)}`, { token }),
-    crear: (token, datos) => request(`${basePath}/`, { method: "POST", token, body: datos }),
-    actualizar: (token, id, datos) =>
-      request(`${basePath}/${encodeURIComponent(id)}`, { method: "PUT", token, body: datos }),
-    eliminar: (token, id) =>
-      request(`${basePath}/${encodeURIComponent(id)}`, { method: "DELETE", token }),
+    listar: (token, opts) => request(`${basePath}/`, { token, ...opts }),
+    obtener: (token, id, opts) => request(`${basePath}/${encodeURIComponent(id)}`, { token, ...opts }),
+    crear: (token, datos, opts) => request(`${basePath}/`, { method: "POST", token, body: datos, ...opts }),
+    actualizar: (token, id, datos, opts) =>
+      request(`${basePath}/${encodeURIComponent(id)}`, { method: "PUT", token, body: datos, ...opts }),
+    eliminar: (token, id, opts) =>
+      request(`${basePath}/${encodeURIComponent(id)}`, { method: "DELETE", token, ...opts }),
   };
 }
 
@@ -80,51 +94,51 @@ export const api = {
   login: (username, password) =>
     request("/api/auth/login", { method: "POST", body: { username, password } }),
 
-  turnoActivo: (token) => request("/api/turnos/activo", { token }),
+  turnoActivo: (token, opts) => request("/api/turnos/activo", { token, ...opts }),
   abrirTurno: (token, isla) =>
     request("/api/turnos/abrir", { method: "POST", token, body: { isla } }),
   cerrarTurno: (token, turnoId) =>
     request(`/api/turnos/${turnoId}/cerrar`, { method: "POST", token }),
-  listarTurnos: (token, operarioId) =>
+  listarTurnos: (token, operarioId, opts) =>
     request(
       `/api/turnos/${operarioId ? `?operario_id=${encodeURIComponent(operarioId)}` : ""}`,
-      { token }
+      { token, ...opts }
     ),
 
   subirFotoLectura: (token, archivo) =>
     requestArchivo("/api/lecturas-mangueras/foto", { archivo, token }),
   crearLectura: (token, datos) =>
     request("/api/lecturas-mangueras/", { method: "POST", token, body: datos }),
-  listarLecturas: (token, turnoId) =>
-    request(`/api/lecturas-mangueras/?turno_id=${encodeURIComponent(turnoId)}`, { token }),
+  listarLecturas: (token, turnoId, opts) =>
+    request(`/api/lecturas-mangueras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   crearVenta: (token, datos) =>
     request("/api/productos-unidad-ventas/", { method: "POST", token, body: datos }),
-  listarVentas: (token, turnoId) =>
-    request(`/api/productos-unidad-ventas/?turno_id=${encodeURIComponent(turnoId)}`, { token }),
+  listarVentas: (token, turnoId, opts) =>
+    request(`/api/productos-unidad-ventas/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   crearVentaGranel: (token, datos) =>
     request("/api/ventas-granel/", { method: "POST", token, body: datos }),
-  listarVentasGranel: (token, turnoId) =>
-    request(`/api/ventas-granel/?turno_id=${encodeURIComponent(turnoId)}`, { token }),
+  listarVentasGranel: (token, turnoId, opts) =>
+    request(`/api/ventas-granel/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   crearTransaccion: (token, datos) =>
     request("/api/transacciones-financieras/", { method: "POST", token, body: datos }),
-  listarTransacciones: (token, turnoId) =>
-    request(`/api/transacciones-financieras/?turno_id=${encodeURIComponent(turnoId)}`, { token }),
+  listarTransacciones: (token, turnoId, opts) =>
+    request(`/api/transacciones-financieras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
-  listarMovimientos: (token) => request("/api/productos-unidad-movimientos/", { token }),
+  listarMovimientos: (token, opts) => request("/api/productos-unidad-movimientos/", { token, ...opts }),
   crearMovimiento: (token, datos) =>
     request("/api/productos-unidad-movimientos/", { method: "POST", token, body: datos }),
 
-  listarHistorialPrecios: (token, codigo) =>
+  listarHistorialPrecios: (token, codigo, opts) =>
     request(
       `/api/historial-precios/${codigo ? `?codigo=${encodeURIComponent(codigo)}` : ""}`,
-      { token }
+      { token, ...opts }
     ),
 
-  reporteDiario: (token, desde, hasta) =>
-    request(`/api/reportes/diario?desde=${desde}&hasta=${hasta}`, { token }),
+  reporteDiario: (token, desde, hasta, opts) =>
+    request(`/api/reportes/diario?desde=${desde}&hasta=${hasta}`, { token, ...opts }),
 
   // Inventario por bodega
   listarInventario: (token, bodegaId) => request(`/api/bodegas/${bodegaId}/inventario`, { token }),
@@ -147,12 +161,12 @@ export const api = {
   tiposTransaccion: crudEndpoints("/api/tipos-transaccion"),
 
   // Alias de solo lectura usados también desde el panel de operario
-  listarMangueras: (token) => request("/api/mangueras/", { token }),
-  listarProductosGranel: (token) => request("/api/productos-granel/", { token }),
-  listarProductosUnidad: (token, tipo) =>
-    request(`/api/productos-unidad/${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ""}`, { token }),
-  listarClientes: (token) => request("/api/clientes/", { token }),
-  listarIslas: (token) => request("/api/islas/", { token }),
+  listarMangueras: (token, opts) => request("/api/mangueras/", { token, ...opts }),
+  listarProductosGranel: (token, opts) => request("/api/productos-granel/", { token, ...opts }),
+  listarProductosUnidad: (token, tipo, opts) =>
+    request(`/api/productos-unidad/${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ""}`, { token, ...opts }),
+  listarClientes: (token, opts) => request("/api/clientes/", { token, ...opts }),
+  listarIslas: (token, opts) => request("/api/islas/", { token, ...opts }),
 };
 
 export { ApiError };

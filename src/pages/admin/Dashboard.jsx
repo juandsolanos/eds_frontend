@@ -20,21 +20,23 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async ({ signal } = {}) => {
     setCargando(true);
     setError(null);
     try {
-      const data = await api.reporteDiario(token, desde, hasta);
+      const data = await api.reporteDiario(token, desde, hasta, { signal });
       setReporte(data);
     } catch (err) {
-      setError(err.detail);
+      if (err.name !== "AbortError") setError(err.detail);
     } finally {
       setCargando(false);
     }
   }, [token, desde, hasta]);
 
   useEffect(() => {
-    cargar();
+    const ctrl = new AbortController();
+    cargar({ signal: ctrl.signal });
+    return () => ctrl.abort();
   }, [cargar]);
 
   return (

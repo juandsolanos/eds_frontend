@@ -20,19 +20,24 @@ export default function Registros() {
   const [formMovimiento, setFormMovimiento] = useState({ codigo: "", cantidad: "", origen: "", destino: "" });
   const [error, setError] = useState(null);
 
-  const cargarTurnos = useCallback(async () => {
+  const cargarTurnos = useCallback(async ({ signal } = {}) => {
     try {
-      const data = await api.listarTurnos(token, operarioFiltro || undefined);
+      const data = await api.listarTurnos(token, operarioFiltro || undefined, { signal });
       setTurnos(data);
     } catch (err) {
-      setError(err.detail);
+      if (err.name !== "AbortError") setError(err.detail);
     }
   }, [token, operarioFiltro]);
 
   useEffect(() => {
-    cargarTurnos();
-    api.listarMovimientos(token).then(setMovimientos).catch((err) => setError(err.detail));
-    api.listarProductosUnidad(token).then(setProductos).catch(() => {});
+    const ctrl = new AbortController();
+    const { signal } = ctrl;
+    cargarTurnos({ signal });
+    api.listarMovimientos(token, { signal }).then(setMovimientos).catch((err) => {
+      if (err.name !== "AbortError") setError(err.detail);
+    });
+    api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => {});
+    return () => ctrl.abort();
   }, [token, cargarTurnos]);
 
   async function verDetalle(turno) {
