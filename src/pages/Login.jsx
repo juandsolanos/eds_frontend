@@ -19,7 +19,7 @@ export default function Login() {
       <div className="login-card">
         <h1 className="login-card__title">
           <span className="mono" style={{ color: "var(--accent)" }}>
-            EDS
+            EDSs
           </span>{" "}
           Panel
         </h1>
