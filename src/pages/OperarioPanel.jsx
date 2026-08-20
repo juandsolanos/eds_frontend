@@ -14,7 +14,7 @@ import ConfirmModal from "../components/ConfirmModal";
 const TABS = [
   { key: "lecturas", label: "Lecturas de manguera" },
   { key: "combustible", label: "Ventas de combustible" },
-  { key: "ventas", label: "Ventas por unidad" },
+  { key: "ventas", label: "Ventas de complementarios" },
   { key: "transacciones", label: "Transacciones" },
 ];
 
@@ -177,7 +177,9 @@ export default function OperarioPanel() {
 
   async function manejarRegistrarTransaccion(datos) {
     setCargandoAccion(true);
+    console.log(datos);
     try {
+      
       await api.crearTransaccion(token, datos);
       mostrarExito("Transacción registrada.");
       await cargarRegistrosDelTurno(turno.id);

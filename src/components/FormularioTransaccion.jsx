@@ -12,6 +12,7 @@ export default function FormularioTransaccion({ clientes, onRegistrar, cargando 
   useEffect(() => {
     const ctrl = new AbortController();
     api.tiposTransaccion.listar(token, { signal: ctrl.signal }).then((data) => {
+      console.log(data);
       setTipos(data);
       if (data.length > 0) setTipo(data[0].tipo);
     }).catch(() => setTipos([]));
@@ -40,7 +41,7 @@ export default function FormularioTransaccion({ clientes, onRegistrar, cargando 
           <label htmlFor="tipo">Tipo</label>
           <select id="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} required>
             {tipos.map((t) => (
-              <option key={t.tipo} value={t.tipo}>
+              <option key={t.id} value={t.id}>
                 {t.nombre}
               </option>
             ))}
