@@ -10,10 +10,12 @@ export default function FormularioTransaccion({ clientes, onRegistrar, cargando 
   const [clienteId, setClienteId] = useState("");
 
   useEffect(() => {
-    api.tiposTransaccion.listar(token).then((data) => {
+    const ctrl = new AbortController();
+    api.tiposTransaccion.listar(token, { signal: ctrl.signal }).then((data) => {
       setTipos(data);
       if (data.length > 0) setTipo(data[0].tipo);
     }).catch(() => setTipos([]));
+    return () => ctrl.abort();
   }, [token]);
 
   function limpiar() {

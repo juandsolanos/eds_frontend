@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import RegistrosTabla from "./RegistrosTabla";
+import ConfirmModal from "./ConfirmModal";
 
 /**
  * Gestor CRUD genérico para un catálogo. No decide reglas de negocio
@@ -18,18 +19,21 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [filtro, setFiltro] = useState("");
+  const [itemAEliminar, setItemAEliminar] = useState(null);
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async ({ signal } = {}) => {
     try {
-      const data = await apiResource.listar(token);
+      const data = await apiResource.listar(token, { signal });
       setItems(data);
     } catch (err) {
-      setError(err.detail);
+      if (err.name !== "AbortError") setError(err.detail);
     }
   }, [apiResource, token]);
 
   useEffect(() => {
-    cargar();
+    const ctrl = new AbortController();
+    cargar({ signal: ctrl.signal });
+    return () => ctrl.abort();
   }, [cargar]);
 
   function limpiarForm() {
@@ -62,8 +66,9 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
     }
   }
 
-  async function manejarEliminar(item) {
-    if (!confirm(`¿Eliminar este registro de ${titulo}?`)) return;
+  async function manejarEliminar() {
+    const item = itemAEliminar;
+    setItemAEliminar(null);
     setError(null);
     try {
       await apiResource.eliminar(token, item[idField]);
@@ -138,7 +143,7 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
                 <button className="btn btn--ghost" onClick={() => cargarParaEditar(item)}>
                   Editar
                 </button>
-                <button className="btn btn--danger" onClick={() => manejarEliminar(item)}>
+                <button className="btn btn--danger" onClick={() => setItemAEliminar(item)}>
                   Eliminar
                 </button>
               </div>
@@ -147,6 +152,13 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
         ]}
         filas={itemsFiltrados}
         vacio={`Sin registros en ${titulo.toLowerCase()} todavía.`}
+      />
+
+      <ConfirmModal
+        open={itemAEliminar !== null}
+        mensaje={`¿Eliminar este registro de ${titulo.toLowerCase()}?`}
+        onConfirmar={manejarEliminar}
+        onCancelar={() => setItemAEliminar(null)}
       />
     </div>
   );

@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback } from "react";
-import { api } from "../api/client";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { api, setOnUnauthorized } from "../api/client";
 
 const AuthContext = createContext(null);
 
@@ -25,6 +25,17 @@ export function AuthProvider({ children }) {
 
   const payload = token ? decodificarPayload(token) : null;
 
+  const logout = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setToken(null);
+  }, []);
+
+  // Registrar el logout como callback global para errores 401
+  useEffect(() => {
+    setOnUnauthorized(logout);
+    return () => setOnUnauthorized(null);
+  }, [logout]);
+
   const login = useCallback(async (username, password) => {
     setCargando(true);
     setError(null);
@@ -38,11 +49,6 @@ export function AuthProvider({ children }) {
     } finally {
       setCargando(false);
     }
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setToken(null);
   }, []);
 
   const value = {

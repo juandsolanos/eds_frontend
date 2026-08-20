@@ -9,6 +9,7 @@ import FormularioVenta from "../components/FormularioVenta";
 import FormularioVentaGranel from "../components/FormularioVentaGranel";
 import FormularioTransaccion from "../components/FormularioTransaccion";
 import RegistrosTabla from "../components/RegistrosTabla";
+import ConfirmModal from "../components/ConfirmModal";
 
 const TABS = [
   { key: "lecturas", label: "Lecturas de manguera" },
@@ -36,10 +37,11 @@ export default function OperarioPanel() {
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensaje, setMensaje] = useState(null); // { tipo: 'error' | 'success', texto }
+  const [confirmarCerrarTurno, setConfirmarCerrarTurno] = useState(false);
 
-  const cargarTurnoActivo = useCallback(async () => {
+  const cargarTurnoActivo = useCallback(async ({ signal } = {}) => {
     try {
-      const t = await api.turnoActivo(token);
+      const t = await api.turnoActivo(token, { signal });
       setTurno(t);
     } catch {
       setTurno(null);
@@ -47,7 +49,7 @@ export default function OperarioPanel() {
   }, [token]);
 
   const cargarRegistrosDelTurno = useCallback(
-    async (turnoId) => {
+    async (turnoId, { signal } = {}) => {
       if (!turnoId) {
         setLecturas([]);
         setVentasGranel([]);
@@ -56,10 +58,10 @@ export default function OperarioPanel() {
         return;
       }
       const [l, vg, v, t] = await Promise.all([
-        api.listarLecturas(token, turnoId),
-        api.listarVentasGranel(token, turnoId),
-        api.listarVentas(token, turnoId),
-        api.listarTransacciones(token, turnoId),
+        api.listarLecturas(token, turnoId, { signal }),
+        api.listarVentasGranel(token, turnoId, { signal }),
+        api.listarVentas(token, turnoId, { signal }),
+        api.listarTransacciones(token, turnoId, { signal }),
       ]);
       setLecturas(l);
       setVentasGranel(vg);
@@ -71,17 +73,24 @@ export default function OperarioPanel() {
 
   // Carga inicial: turno activo + catálogos necesarios para los formularios
   useEffect(() => {
-    cargarTurnoActivo();
-    api.listarIslas(token).then(setIslas).catch(() => setIslas([]));
-    api.listarMangueras(token).then(setMangueras).catch(() => setMangueras([]));
-    api.listarProductosGranel(token).then(setProductosGranel).catch(() => setProductosGranel([]));
-    api.listarProductosUnidad(token).then(setProductos).catch(() => setProductos([]));
-    api.listarClientes(token).then(setClientes).catch(() => setClientes([]));
+    const ctrl = new AbortController();
+    const { signal } = ctrl;
+
+    cargarTurnoActivo({ signal });
+    api.listarIslas(token, { signal }).then(setIslas).catch(() => setIslas([]));
+    api.listarMangueras(token, { signal }).then(setMangueras).catch(() => setMangueras([]));
+    api.listarProductosGranel(token, { signal }).then(setProductosGranel).catch(() => setProductosGranel([]));
+    api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => setProductos([]));
+    api.listarClientes(token, { signal }).then(setClientes).catch(() => setClientes([]));
+
+    return () => ctrl.abort();
   }, [token, cargarTurnoActivo]);
 
   // Cuando cambia el turno activo, recargamos sus registros
   useEffect(() => {
-    cargarRegistrosDelTurno(turno?.id);
+    const ctrl = new AbortController();
+    cargarRegistrosDelTurno(turno?.id, { signal: ctrl.signal });
+    return () => ctrl.abort();
   }, [turno, cargarRegistrosDelTurno]);
 
   function mostrarError(err) {
@@ -108,7 +117,7 @@ export default function OperarioPanel() {
   }
 
   async function manejarCerrarTurno() {
-    if (!confirm(`¿Cerrar el turno ${turno.id}? No podrás registrar más movimientos en él.`)) return;
+    setConfirmarCerrarTurno(false);
     setCargandoAccion(true);
     try {
       await api.cerrarTurno(token, turno.id);
@@ -213,7 +222,7 @@ export default function OperarioPanel() {
         <TurnoStatus
           turno={turno}
           onAbrir={manejarAbrirTurno}
-          onCerrar={manejarCerrarTurno}
+          onCerrar={() => setConfirmarCerrarTurno(true)}
           islas={islas}
           isla={islaParaAbrir}
           setIsla={setIslaParaAbrir}
@@ -325,6 +334,13 @@ export default function OperarioPanel() {
           </div>
         )}
       </main>
+
+      <ConfirmModal
+        open={confirmarCerrarTurno}
+        mensaje={`¿Cerrar el turno ${turno?.id}? No podrás registrar más movimientos en él.`}
+        onConfirmar={manejarCerrarTurno}
+        onCancelar={() => setConfirmarCerrarTurno(false)}
+      />
     </div>
   );
 }
