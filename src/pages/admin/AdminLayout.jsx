@@ -3,13 +3,18 @@ import { useAuth } from "../../context/AuthContext";
 
 const NAV_ITEMS = [
   { to: "/admin/dashboard", label: "Dashboard" },
+  { to: "/admin/turnos", label: "Turnos" },
   { to: "/admin/registros", label: "Registros" },
-  { to: "/admin/catalogos", label: "Catálogos" },
+  { to: "/admin/catalogos", label: "Catálogos", soloSuperadmin: true },
   { to: "/admin/historial-precios", label: "Historial de precios" },
 ];
 
 export default function AdminLayout() {
   const { usuario, logout } = useAuth();
+
+  const itemsVisibles = NAV_ITEMS.filter(
+    (item) => !item.soloSuperadmin || usuario.rol === "superadministrador"
+  );
 
   return (
     <div className="app-shell">
@@ -44,7 +49,7 @@ export default function AdminLayout() {
             gap: "var(--spacing-1)",
           }}
         >
-          {NAV_ITEMS.map((item) => (
+          {itemsVisibles.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import RegistrosTabla from "./RegistrosTabla";
 import ConfirmModal from "./ConfirmModal";
+import { formatMoney } from "../utils/format";
 
 /**
  * Gestor CRUD genérico para un catálogo. No decide reglas de negocio
@@ -134,7 +135,12 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
 
       <RegistrosTabla
         columnas={[
-          ...campos.map((c) => ({ key: c.key, label: c.label })),
+          ...campos.map((c) => ({
+            key: c.key,
+            label: c.label,
+            mono: c.format === "money",
+            render: c.format === "money" ? (item) => formatMoney(item[c.key]) : undefined,
+          })),
           {
             key: "_acciones",
             label: "",

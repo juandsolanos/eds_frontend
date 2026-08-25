@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
+import { formatMoney, formatVol, formatCant } from "../../utils/format";
 
 function formatoFecha(iso) {
   return new Date(iso).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
@@ -129,9 +130,9 @@ export default function Registros() {
               {
                 key: "galones",
                 label: "Galones",
-                render: (f) => (f.lectura_final - f.lectura_inicial).toFixed(2),
+                render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
               },
-              { key: "valor_total", label: "Valor", mono: true, render: (f) => `$${f.valor_total.toFixed(2)}` },
+              { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
             ]}
             filas={detalle.lecturas}
             vacio="Sin lecturas en este turno."
@@ -143,8 +144,8 @@ export default function Registros() {
           <RegistrosTabla
             columnas={[
               { key: "codigo", label: "Producto" },
-              { key: "cantidad", label: "Cantidad" },
-              { key: "valor_total", label: "Valor", mono: true, render: (f) => `$${f.valor_total.toFixed(2)}` },
+              { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
+              { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
             ]}
             filas={detalle.ventas}
             vacio="Sin ventas en este turno."
@@ -157,7 +158,7 @@ export default function Registros() {
             columnas={[
               { key: "id", label: "ID", mono: true },
               { key: "tipo", label: "Tipo" },
-              { key: "valor", label: "Valor", mono: true, render: (f) => `$${f.valor.toFixed(2)}` },
+              { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
             ]}
             filas={detalle.transacciones}
             vacio="Sin transacciones en este turno."
@@ -229,7 +230,7 @@ export default function Registros() {
         <RegistrosTabla
           columnas={[
             { key: "codigo", label: "Producto" },
-            { key: "cantidad", label: "Cantidad" },
+            { key: "cantidad", label: "Cantidad", render: (m) => formatCant(m.cantidad) },
             { key: "origen", label: "Origen" },
             { key: "destino", label: "Destino" },
             { key: "tiempo", label: "Fecha", render: (m) => formatoFecha(m.tiempo) },

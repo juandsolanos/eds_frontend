@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatMoney } from "../utils/format";
 
 export default function FormularioVenta({ productos, onRegistrar, cargando }) {
   const [tipoFiltro, setTipoFiltro] = useState("");
@@ -16,7 +17,7 @@ export default function FormularioVenta({ productos, onRegistrar, cargando }) {
 
   const productoSeleccionado = productos.find((p) => p.codigo === codigo);
   const valorEstimado = productoSeleccionado && cantidad
-    ? (productoSeleccionado.precio_unitario * Number(cantidad)).toFixed(2)
+    ? formatMoney(productoSeleccionado.precio_unitario * Number(cantidad))
     : null;
 
   function limpiar() {
@@ -78,7 +79,7 @@ export default function FormularioVenta({ productos, onRegistrar, cargando }) {
         {valorEstimado && (
           <div className="field">
             <label>Valor total estimado</label>
-            <div className="readout">${valorEstimado}</div>
+            <div className="readout">{valorEstimado}</div>
           </div>
         )}
 

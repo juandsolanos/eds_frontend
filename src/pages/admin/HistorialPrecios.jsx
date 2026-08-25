@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
+import { formatMoney } from "../../utils/format";
 
 function formatoFecha(iso) {
   return new Date(iso).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
@@ -49,13 +50,13 @@ export default function HistorialPrecios() {
           {
             key: "precio_anterior",
             label: "Precio anterior",
-            render: (h) => `$${h.precio_anterior.toFixed(2)}`,
+            render: (h) => formatMoney(h.precio_anterior),
           },
           {
             key: "precio_nuevo",
             label: "Precio nuevo",
             mono: true,
-            render: (h) => `$${h.precio_nuevo.toFixed(2)}`,
+            render: (h) => formatMoney(h.precio_nuevo),
           },
           { key: "fecha_cambio", label: "Fecha del cambio", render: (h) => formatoFecha(h.fecha_cambio) },
         ]}

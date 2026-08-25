@@ -95,15 +95,24 @@ export const api = {
     request("/api/auth/login", { method: "POST", body: { username, password } }),
 
   turnoActivo: (token, opts) => request("/api/turnos/activo", { token, ...opts }),
+  turnoEnEspera: (token, opts) => request("/api/turnos/en_espera", { token, ...opts }),
   abrirTurno: (token, isla) =>
     request("/api/turnos/abrir", { method: "POST", token, body: { isla } }),
+  solicitarAbrirTurno: (token, turnoId) =>
+    request(`/api/turnos/${turnoId}/abrir`, { method: "POST", token }),
   cerrarTurno: (token, turnoId) =>
     request(`/api/turnos/${turnoId}/cerrar`, { method: "POST", token }),
+  crearTurno: (token, datos) =>
+    request("/api/turnos/", { method: "POST", token, body: datos }),
+  asignarResponsable: (token, turnoId, responsable) =>
+    request(`/api/turnos/${turnoId}/responsable`, { method: "PUT", token, body: { responsable } }),
   listarTurnos: (token, operarioId, opts) =>
     request(
       `/api/turnos/${operarioId ? `?operario_id=${encodeURIComponent(operarioId)}` : ""}`,
       { token, ...opts }
     ),
+  obtenerTurno: (token, turnoId, opts) =>
+    request(`/api/turnos/${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   subirFotoLectura: (token, archivo) =>
     requestArchivo("/api/lecturas-mangueras/foto", { archivo, token }),

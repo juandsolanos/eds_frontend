@@ -10,6 +10,7 @@ import FormularioVentaGranel from "../components/FormularioVentaGranel";
 import FormularioTransaccion from "../components/FormularioTransaccion";
 import RegistrosTabla from "../components/RegistrosTabla";
 import ConfirmModal from "../components/ConfirmModal";
+import { formatMoney, formatVol, formatCant } from "../utils/format";
 
 const TABS = [
   { key: "lecturas", label: "Lecturas de manguera" },
@@ -18,16 +19,17 @@ const TABS = [
   { key: "transacciones", label: "Transacciones" },
 ];
 
+const ESTADOS_PERMITIDOS = ["creado", "en_espera", "abierto"];
+
 export default function OperarioPanel() {
   const { token, usuario, logout } = useAuth();
 
-  const [turno, setTurno] = useState(null);
-  const [islas, setIslas] = useState([]);
+  const [turnos, setTurnos] = useState([]);
+  const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
   const [mangueras, setMangueras] = useState([]);
   const [productosGranel, setProductosGranel] = useState([]);
   const [productos, setProductos] = useState([]);
   const [clientes, setClientes] = useState([]);
-  const [islaParaAbrir, setIslaParaAbrir] = useState("");
 
   const [tab, setTab] = useState("lecturas");
   const [lecturas, setLecturas] = useState([]);
@@ -36,15 +38,18 @@ export default function OperarioPanel() {
   const [transacciones, setTransacciones] = useState([]);
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
-  const [mensaje, setMensaje] = useState(null); // { tipo: 'error' | 'success', texto }
+  const [mensaje, setMensaje] = useState(null);
   const [confirmarCerrarTurno, setConfirmarCerrarTurno] = useState(false);
 
-  const cargarTurnoActivo = useCallback(async ({ signal } = {}) => {
+  const cargarTurnos = useCallback(async ({ signal } = {}) => {
     try {
-      const t = await api.turnoActivo(token, { signal });
-      setTurno(t);
+      const data = await api.listarTurnos(token, undefined, { signal });
+      const disponibles = data.filter((t) => ESTADOS_PERMITIDOS.includes(t.estado));
+      setTurnos(disponibles);
+      return disponibles;
     } catch {
-      setTurno(null);
+      setTurnos([]);
+      return [];
     }
   }, [token]);
 
@@ -71,27 +76,41 @@ export default function OperarioPanel() {
     [token]
   );
 
-  // Carga inicial: turno activo + catálogos necesarios para los formularios
   useEffect(() => {
     const ctrl = new AbortController();
     const { signal } = ctrl;
 
-    cargarTurnoActivo({ signal });
-    api.listarIslas(token, { signal }).then(setIslas).catch(() => setIslas([]));
+    cargarTurnos({ signal }).then((disponibles) => {
+      if (disponibles.length > 0) {
+        setTurnoSeleccionado((prev) => {
+          if (prev && disponibles.some((t) => t.id === prev.id)) return prev;
+          const abierto = disponibles.find((t) => t.estado === "abierto");
+          return abierto || disponibles[0];
+        });
+      } else {
+        setTurnoSeleccionado(null);
+      }
+    });
     api.listarMangueras(token, { signal }).then(setMangueras).catch(() => setMangueras([]));
     api.listarProductosGranel(token, { signal }).then(setProductosGranel).catch(() => setProductosGranel([]));
     api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => setProductos([]));
     api.listarClientes(token, { signal }).then(setClientes).catch(() => setClientes([]));
 
     return () => ctrl.abort();
-  }, [token, cargarTurnoActivo]);
+  }, [token, cargarTurnos]);
 
-  // Cuando cambia el turno activo, recargamos sus registros
   useEffect(() => {
     const ctrl = new AbortController();
-    cargarRegistrosDelTurno(turno?.id, { signal: ctrl.signal });
+    if (turnoSeleccionado?.estado === "abierto") {
+      cargarRegistrosDelTurno(turnoSeleccionado.id, { signal: ctrl.signal });
+    } else {
+      setLecturas([]);
+      setVentasGranel([]);
+      setVentas([]);
+      setTransacciones([]);
+    }
     return () => ctrl.abort();
-  }, [turno, cargarRegistrosDelTurno]);
+  }, [turnoSeleccionado, cargarRegistrosDelTurno]);
 
   function mostrarError(err) {
     setMensaje({ tipo: "error", texto: err.detail || "Ocurrió un error inesperado." });
@@ -102,13 +121,13 @@ export default function OperarioPanel() {
     setTimeout(() => setMensaje(null), 3000);
   }
 
-  async function manejarAbrirTurno() {
+  async function manejarSolicitarAbrir() {
     setCargandoAccion(true);
     try {
-      const nuevoTurno = await api.abrirTurno(token, Number(islaParaAbrir));
-      setTurno(nuevoTurno);
-      setIslaParaAbrir("");
-      mostrarExito(`Turno ${nuevoTurno.id} abierto.`);
+      const turnoAbierto = await api.solicitarAbrirTurno(token, turnoSeleccionado.id);
+      setTurnoSeleccionado(turnoAbierto);
+      setTurnos((prev) => prev.map((t) => (t.id === turnoAbierto.id ? turnoAbierto : t)));
+      mostrarExito(`Turno ${turnoAbierto.id} abierto.`);
     } catch (err) {
       mostrarError(err);
     } finally {
@@ -120,9 +139,14 @@ export default function OperarioPanel() {
     setConfirmarCerrarTurno(false);
     setCargandoAccion(true);
     try {
-      await api.cerrarTurno(token, turno.id);
+      await api.cerrarTurno(token, turnoSeleccionado.id);
       mostrarExito("Turno cerrado.");
-      setTurno(null);
+      setTurnoSeleccionado(null);
+      const disponibles = await cargarTurnos();
+      if (disponibles.length > 0) {
+        const abierto = disponibles.find((t) => t.estado === "abierto");
+        setTurnoSeleccionado(abierto || disponibles[0]);
+      }
     } catch (err) {
       mostrarError(err);
     } finally {
@@ -135,7 +159,7 @@ export default function OperarioPanel() {
     try {
       await api.crearLectura(token, datos);
       mostrarExito("Lectura registrada.");
-      await cargarRegistrosDelTurno(turno.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado.id);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -150,7 +174,7 @@ export default function OperarioPanel() {
     try {
       await api.crearVentaGranel(token, datos);
       mostrarExito("Venta de combustible registrada.");
-      await cargarRegistrosDelTurno(turno.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado.id);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -165,7 +189,7 @@ export default function OperarioPanel() {
     try {
       await api.crearVenta(token, datos);
       mostrarExito("Venta registrada.");
-      await cargarRegistrosDelTurno(turno.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado.id);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -177,12 +201,10 @@ export default function OperarioPanel() {
 
   async function manejarRegistrarTransaccion(datos) {
     setCargandoAccion(true);
-    console.log(datos);
     try {
-      
       await api.crearTransaccion(token, datos);
       mostrarExito("Transacción registrada.");
-      await cargarRegistrosDelTurno(turno.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado.id);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -191,6 +213,8 @@ export default function OperarioPanel() {
       setCargandoAccion(false);
     }
   }
+
+  const turnoAbierto = turnoSeleccionado?.estado === "abierto";
 
   return (
     <div className="app-shell">
@@ -203,7 +227,7 @@ export default function OperarioPanel() {
           <span>
             {usuario.username} · {usuario.rol}
           </span>
-          {usuario.rol === "administrador" && (
+          {["administrador", "superadministrador"].includes(usuario.rol) && (
             <Link to="/admin" className="topbar__logout">
               Ir al panel admin
             </Link>
@@ -221,17 +245,37 @@ export default function OperarioPanel() {
           </div>
         )}
 
+        {turnos.length > 0 && (
+          <div className="card" style={{ marginBottom: "var(--spacing-4)" }}>
+            <label style={{ fontSize: "0.85rem", fontWeight: 600, display: "block", marginBottom: "var(--spacing-2)" }}>
+              Seleccionar turno
+            </label>
+            <select
+              value={turnoSeleccionado?.id || ""}
+              onChange={(e) => {
+                const t = turnos.find((t) => t.id === e.target.value);
+                setTurnoSeleccionado(t || null);
+              }}
+              style={{ minWidth: 250 }}
+            >
+              {turnos.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.id} — Isla {t.isla} ({t.estado})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <TurnoStatus
-          turno={turno}
-          onAbrir={manejarAbrirTurno}
+          turno={turnoSeleccionado}
+          turnosDisponibles={turnos}
           onCerrar={() => setConfirmarCerrarTurno(true)}
-          islas={islas}
-          isla={islaParaAbrir}
-          setIsla={setIslaParaAbrir}
+          onSolicitarAbrir={manejarSolicitarAbrir}
           cargando={cargandoAccion}
         />
 
-        {turno && (
+        {turnoAbierto && (
           <div className="card">
             <div className="tabs">
               {TABS.map((t) => (
@@ -259,9 +303,9 @@ export default function OperarioPanel() {
                       {
                         key: "cantidad",
                         label: "Galones",
-                        render: (f) => (f.lectura_final - f.lectura_inicial).toFixed(2),
+                        render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
                       },
-                      { key: "valor_total", label: "Valor", mono: true, render: (f) => `$${f.valor_total.toFixed(2)}` },
+                      { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                       { key: "texto", label: "Notas" },
                     ]}
                     filas={lecturas}
@@ -282,8 +326,8 @@ export default function OperarioPanel() {
                   <RegistrosTabla
                     columnas={[
                       { key: "codigo", label: "Combustible" },
-                      { key: "cantidad", label: "Galones" },
-                      { key: "valor_total", label: "Valor", mono: true, render: (f) => `$${f.valor_total.toFixed(2)}` },
+                      { key: "cantidad", label: "Galones", render: (f) => formatVol(f.cantidad) },
+                      { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                     ]}
                     filas={ventasGranel}
                     vacio="Sin ventas de combustible registradas en este turno."
@@ -303,8 +347,8 @@ export default function OperarioPanel() {
                   <RegistrosTabla
                     columnas={[
                       { key: "codigo", label: "Producto" },
-                      { key: "cantidad", label: "Cantidad" },
-                      { key: "valor_total", label: "Valor", mono: true, render: (f) => `$${f.valor_total.toFixed(2)}` },
+                      { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
+                      { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                     ]}
                     filas={ventas}
                     vacio="Sin ventas registradas en este turno."
@@ -325,7 +369,7 @@ export default function OperarioPanel() {
                     columnas={[
                       { key: "id", label: "ID", mono: true },
                       { key: "tipo", label: "Tipo" },
-                      { key: "valor", label: "Valor", mono: true, render: (f) => `$${f.valor.toFixed(2)}` },
+                      { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
                     ]}
                     filas={transacciones}
                     vacio="Sin transacciones registradas en este turno."
@@ -335,11 +379,21 @@ export default function OperarioPanel() {
             )}
           </div>
         )}
+
+        {!turnoAbierto && turnoSeleccionado && turnoSeleccionado.estado !== "abierto" && (
+          <div className="card" style={{ textAlign: "center", padding: "var(--spacing-8)" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>
+              {turnoSeleccionado.estado === "en_espera"
+                ? "Este turno está en espera. Solicita abrirlo para comenzar a operar."
+                : "Este turno aún no está disponible. Espera a que llegue su hora de inicio."}
+            </p>
+          </div>
+        )}
       </main>
 
       <ConfirmModal
         open={confirmarCerrarTurno}
-        mensaje={`¿Cerrar el turno ${turno?.id}? No podrás registrar más movimientos en él.`}
+        mensaje={`¿Cerrar el turno ${turnoSeleccionado?.id}? No podrás registrar más movimientos en él.`}
         onConfirmar={manejarCerrarTurno}
         onCancelar={() => setConfirmarCerrarTurno(false)}
       />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatMoney } from "../utils/format";
 
 export default function FormularioVentaGranel({ productos, onRegistrar, cargando }) {
   const [codigo, setCodigo] = useState("");
@@ -6,7 +7,7 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
 
   const productoSeleccionado = productos.find((p) => p.codigo === codigo);
   const valorEstimado = productoSeleccionado && cantidad
-    ? (productoSeleccionado.precio_unitario * Number(cantidad)).toFixed(2)
+    ? formatMoney(productoSeleccionado.precio_unitario * Number(cantidad))
     : null;
 
   function limpiar() {
@@ -50,7 +51,7 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
         {valorEstimado && (
           <div className="field field--full">
             <label>Valor total estimado</label>
-            <div className="readout">${valorEstimado}</div>
+            <div className="readout">{valorEstimado}</div>
           </div>
         )}
 

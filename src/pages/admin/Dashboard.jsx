@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
+import { formatMoney } from "../../utils/format";
 
 function hoyISO() {
   return new Date().toISOString().slice(0, 10);
@@ -69,15 +70,15 @@ export default function Dashboard() {
               {reporte.map((dia) => (
                 <tr key={dia.fecha}>
                   <td className="mono">{dia.fecha}</td>
-                  <td>${dia.ventas_granel_valor.toFixed(2)}</td>
-                  <td>${dia.ventas_unidad_valor.toFixed(2)}</td>
+                  <td>{formatMoney(dia.ventas_granel_valor)}</td>
+                  <td>{formatMoney(dia.ventas_unidad_valor)}</td>
                   <td>
                     {dia.transacciones_por_tipo.length === 0 ? (
                       <span style={{ color: "var(--text-muted)" }}>—</span>
                     ) : (
                       dia.transacciones_por_tipo.map((t) => (
                         <div key={t.tipo} style={{ fontSize: "0.85rem" }}>
-                          {t.nombre}: ${t.valor_total.toFixed(2)}{" "}
+                          {t.nombre}: {formatMoney(t.valor_total)}{" "}
                           <span style={{ color: t.signo === 1 ? "var(--success)" : "var(--danger)" }}>
                             ({t.signo === 1 ? "+" : "-"})
                           </span>
@@ -89,7 +90,7 @@ export default function Dashboard() {
                     className="mono"
                     style={{ color: dia.balance >= 0 ? "var(--success)" : "var(--danger)" }}
                   >
-                    ${dia.balance.toFixed(2)}
+                    {formatMoney(dia.balance)}
                   </td>
                 </tr>
               ))}
