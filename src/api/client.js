@@ -104,6 +104,10 @@ export const api = {
     request(`/api/turnos/${turnoId}/cerrar`, { method: "POST", token }),
   crearTurno: (token, datos) =>
     request("/api/turnos/", { method: "POST", token, body: datos }),
+  actualizarTurno: (token, turnoId, datos) =>
+    request(`/api/turnos/${encodeURIComponent(turnoId)}`, { method: "PUT", token, body: datos }),
+  cambiarEstadoTurno: (token, turnoId, estado) =>
+    request(`/api/turnos/${encodeURIComponent(turnoId)}/estado`, { method: "PUT", token, body: { estado } }),
   asignarResponsable: (token, turnoId, responsable) =>
     request(`/api/turnos/${turnoId}/responsable`, { method: "PUT", token, body: { responsable } }),
   listarTurnos: (token, operarioId, opts) =>
