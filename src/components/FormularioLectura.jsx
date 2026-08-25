@@ -1,8 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 
-export default function FormularioLectura({ mangueras, onRegistrar, cargando }) {
+const nfMiles = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
+
+function formatMiles(valor) {
+  if (valor === "" || valor === null || valor === undefined) return "";
+  const num = typeof valor === "string" ? Number(valor.replace(/\./g, "").replace(",", ".")) : valor;
+  if (isNaN(num)) return "";
+  return nfMiles.format(num);
+}
+
+function parseMiles(texto) {
+  const limpio = texto.replace(/\./g, "").replace(",", ".");
+  return limpio;
+}
+
+function InputMiles({ value, onChange, step, required, id, ...rest }) {
+  function handleChange(e) {
+    const raw = parseMiles(e.target.value);
+    if (raw === "" || raw === "-" || raw === "." || /^-?\d*\.?\d*$/.test(raw)) {
+      onChange(raw);
+    }
+  }
+
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode="decimal"
+      step={step}
+      value={formatMiles(value)}
+      onChange={handleChange}
+      required={required}
+      {...rest}
+    />
+  );
+}
+
+export default function FormularioLectura({ mangueras, lecturasCierre, onRegistrar, cargando }) {
   const { token } = useAuth();
 
   const [manguera, setManguera] = useState("");
@@ -27,12 +63,20 @@ export default function FormularioLectura({ mangueras, onRegistrar, cargando }) 
     setErrorFoto(null);
   }
 
+  // Pre-fill cuando se selecciona una manguera
+  useEffect(() => {
+    if (!manguera || !lecturasCierre) return;
+    const cierre = lecturasCierre.find((c) => c.manguera_id === Number(manguera));
+    if (cierre) {
+      setTiempoInicial(cierre.tiempo_final ? toLocalDatetime(cierre.tiempo_final) : "");
+      setLecturaInicial(String(cierre.lectura_final));
+    }
+  }, [manguera, lecturasCierre]);
+
   async function manejarSubmit(evento) {
     evento.preventDefault();
     setErrorFoto(null);
 
-    // La foto se sube primero (a Supabase Storage vía el backend) para
-    // obtener su URL, y solo entonces se crea la lectura con esa URL.
     setSubiendoFoto(true);
     let fotoUrl;
     try {
@@ -49,8 +93,8 @@ export default function FormularioLectura({ mangueras, onRegistrar, cargando }) 
       manguera_id: Number(manguera),
       tiempo_inicial: tiempoInicial,
       tiempo_final: tiempoFinal,
-      lectura_inicial: Number(lecturaInicial),
-      lectura_final: Number(lecturaFinal),
+      lectura_inicial: Number(parseMiles(String(lecturaInicial))),
+      lectura_final: Number(parseMiles(String(lecturaFinal))),
       foto_url: fotoUrl,
       texto,
     });
@@ -66,7 +110,7 @@ export default function FormularioLectura({ mangueras, onRegistrar, cargando }) 
             <option value="">Selecciona...</option>
             {mangueras.map((m) => (
               <option key={m.id} value={m.id}>
-                Manguera {m.id} — {m.codigo_combustible}
+                Manguera {m.id} — {m.nombre_combustible || m.codigo_combustible}
               </option>
             ))}
           </select>
@@ -97,23 +141,21 @@ export default function FormularioLectura({ mangueras, onRegistrar, cargando }) 
 
         <div className="field">
           <label htmlFor="lectura_inicial">Lectura inicial (galones)</label>
-          <input
+          <InputMiles
             id="lectura_inicial"
-            type="number"
             step="0.01"
             value={lecturaInicial}
-            onChange={(e) => setLecturaInicial(e.target.value)}
+            onChange={setLecturaInicial}
             required
           />
         </div>
         <div className="field">
           <label htmlFor="lectura_final">Lectura final (galones)</label>
-          <input
+          <InputMiles
             id="lectura_final"
-            type="number"
             step="0.01"
             value={lecturaFinal}
-            onChange={(e) => setLecturaFinal(e.target.value)}
+            onChange={setLecturaFinal}
             required
           />
         </div>
@@ -156,4 +198,11 @@ export default function FormularioLectura({ mangueras, onRegistrar, cargando }) 
       </div>
     </form>
   );
+}
+
+function toLocalDatetime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

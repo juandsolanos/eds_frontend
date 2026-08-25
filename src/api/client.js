@@ -117,6 +117,10 @@ export const api = {
     ),
   obtenerTurno: (token, turnoId, opts) =>
     request(`/api/turnos/${encodeURIComponent(turnoId)}`, { token, ...opts }),
+  turnoAnterior: (token, turnoId, opts) =>
+    request(`/api/turnos/${encodeURIComponent(turnoId)}/anterior`, { token, ...opts }),
+  lecturasCierre: (token, turnoId, opts) =>
+    request(`/api/turnos/${encodeURIComponent(turnoId)}/lecturas-cierre`, { token, ...opts }),
 
   subirFotoLectura: (token, archivo) =>
     requestArchivo("/api/lecturas-mangueras/foto", { archivo, token }),
@@ -155,6 +159,8 @@ export const api = {
 
   // Inventario por bodega
   listarInventario: (token, bodegaId) => request(`/api/bodegas/${bodegaId}/inventario`, { token }),
+  listarInventarioPorIsla: (token, isla, opts) =>
+    request(`/api/bodegas/inventario-por-isla/${isla}`, { token, ...opts }),
   actualizarInventario: (token, bodegaId, codigo, cantidad) =>
     request(`/api/bodegas/${bodegaId}/inventario/${encodeURIComponent(codigo)}`, {
       method: "PUT",
@@ -175,6 +181,8 @@ export const api = {
 
   // Alias de solo lectura usados también desde el panel de operario
   listarMangueras: (token, opts) => request("/api/mangueras/", { token, ...opts }),
+  listarManguerasPorIsla: (token, isla, opts) =>
+    request(`/api/mangueras/?isla=${isla}`, { token, ...opts }),
   listarProductosGranel: (token, opts) => request("/api/productos-granel/", { token, ...opts }),
   listarProductosUnidad: (token, tipo, opts) =>
     request(`/api/productos-unidad/${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ""}`, { token, ...opts }),

@@ -16,7 +16,9 @@ const TABS = [
   { key: "lecturas", label: "Lecturas de manguera" },
   { key: "combustible", label: "Ventas de combustible" },
   { key: "ventas", label: "Ventas de complementarios" },
+  { key: "pagos", label: "Pagos" },
   { key: "transacciones", label: "Transacciones" },
+  { key: "inventario", label: "Inventario" },
 ];
 
 const ESTADOS_PERMITIDOS = ["creado", "en_espera", "abierto"];
@@ -30,12 +32,15 @@ export default function OperarioPanel() {
   const [productosGranel, setProductosGranel] = useState([]);
   const [productos, setProductos] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [tiposTransaccion, setTiposTransaccion] = useState([]);
 
   const [tab, setTab] = useState("lecturas");
   const [lecturas, setLecturas] = useState([]);
   const [ventasGranel, setVentasGranel] = useState([]);
   const [ventas, setVentas] = useState([]);
   const [transacciones, setTransacciones] = useState([]);
+  const [lecturasCierre, setLecturasCierre] = useState([]);
+  const [inventario, setInventario] = useState([]);
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensaje, setMensaje] = useState(null);
@@ -54,24 +59,43 @@ export default function OperarioPanel() {
   }, [token]);
 
   const cargarRegistrosDelTurno = useCallback(
-    async (turnoId, { signal } = {}) => {
-      if (!turnoId) {
+    async (turno, { signal } = {}) => {
+      if (!turno) {
         setLecturas([]);
         setVentasGranel([]);
         setVentas([]);
         setTransacciones([]);
+        setLecturasCierre([]);
+        setInventario([]);
         return;
       }
       const [l, vg, v, t] = await Promise.all([
-        api.listarLecturas(token, turnoId, { signal }),
-        api.listarVentasGranel(token, turnoId, { signal }),
-        api.listarVentas(token, turnoId, { signal }),
-        api.listarTransacciones(token, turnoId, { signal }),
+        api.listarLecturas(token, turno.id, { signal }),
+        api.listarVentasGranel(token, turno.id, { signal }),
+        api.listarVentas(token, turno.id, { signal }),
+        api.listarTransacciones(token, turno.id, { signal }),
       ]);
       setLecturas(l);
       setVentasGranel(vg);
       setVentas(v);
       setTransacciones(t);
+
+      // Cargar lecturas de cierre del turno anterior para prefill
+      try {
+        const anterior = await api.turnoAnterior(token, turno.id, { signal });
+        const cierre = await api.lecturasCierre(token, anterior.id, { signal });
+        setLecturasCierre(cierre);
+      } catch {
+        setLecturasCierre([]);
+      }
+
+      // Cargar inventario de la isla del turno
+      try {
+        const inv = await api.listarInventarioPorIsla(token, turno.isla, { signal });
+        setInventario(inv);
+      } catch {
+        setInventario([]);
+      }
     },
     [token]
   );
@@ -91,23 +115,39 @@ export default function OperarioPanel() {
         setTurnoSeleccionado(null);
       }
     });
-    api.listarMangueras(token, { signal }).then(setMangueras).catch(() => setMangueras([]));
     api.listarProductosGranel(token, { signal }).then(setProductosGranel).catch(() => setProductosGranel([]));
     api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => setProductos([]));
     api.listarClientes(token, { signal }).then(setClientes).catch(() => setClientes([]));
+    api.tiposTransaccion.listar(token, { signal }).then(setTiposTransaccion).catch(() => setTiposTransaccion([]));
 
     return () => ctrl.abort();
   }, [token, cargarTurnos]);
 
+  // Cargar mangueras filtradas por isla del turno seleccionado
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const { signal } = ctrl;
+    if (turnoSeleccionado) {
+      api.listarManguerasPorIsla(token, turnoSeleccionado.isla, { signal })
+        .then(setMangueras)
+        .catch(() => setMangueras([]));
+    } else {
+      setMangueras([]);
+    }
+    return () => ctrl.abort();
+  }, [token, turnoSeleccionado]);
+
   useEffect(() => {
     const ctrl = new AbortController();
     if (turnoSeleccionado?.estado === "abierto") {
-      cargarRegistrosDelTurno(turnoSeleccionado.id, { signal: ctrl.signal });
+      cargarRegistrosDelTurno(turnoSeleccionado, { signal: ctrl.signal });
     } else {
       setLecturas([]);
       setVentasGranel([]);
       setVentas([]);
       setTransacciones([]);
+      setLecturasCierre([]);
+      setInventario([]);
     }
     return () => ctrl.abort();
   }, [turnoSeleccionado, cargarRegistrosDelTurno]);
@@ -159,7 +199,7 @@ export default function OperarioPanel() {
     try {
       await api.crearLectura(token, datos);
       mostrarExito("Lectura registrada.");
-      await cargarRegistrosDelTurno(turnoSeleccionado.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -174,7 +214,7 @@ export default function OperarioPanel() {
     try {
       await api.crearVentaGranel(token, datos);
       mostrarExito("Venta de combustible registrada.");
-      await cargarRegistrosDelTurno(turnoSeleccionado.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -189,7 +229,7 @@ export default function OperarioPanel() {
     try {
       await api.crearVenta(token, datos);
       mostrarExito("Venta registrada.");
-      await cargarRegistrosDelTurno(turnoSeleccionado.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -204,7 +244,7 @@ export default function OperarioPanel() {
     try {
       await api.crearTransaccion(token, datos);
       mostrarExito("Transacción registrada.");
-      await cargarRegistrosDelTurno(turnoSeleccionado.id);
+      await cargarRegistrosDelTurno(turnoSeleccionado);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -215,6 +255,17 @@ export default function OperarioPanel() {
   }
 
   const turnoAbierto = turnoSeleccionado?.estado === "abierto";
+
+  // Separar transacciones por signo: pagos (signo=1) y gastos (signo=-1)
+  const tiposPago = tiposTransaccion.filter((t) => t.signo === 1);
+  const tiposGasto = tiposTransaccion.filter((t) => t.signo === -1);
+
+  const transaccionesPago = transacciones.filter((t) =>
+    tiposPago.some((tp) => tp.id === t.tipo)
+  );
+  const transaccionesGasto = transacciones.filter((t) =>
+    tiposGasto.some((tg) => tg.id === t.tipo)
+  );
 
   return (
     <div className="app-shell">
@@ -293,6 +344,7 @@ export default function OperarioPanel() {
               <>
                 <FormularioLectura
                   mangueras={mangueras}
+                  lecturasCierre={lecturasCierre}
                   onRegistrar={manejarRegistrarLectura}
                   cargando={cargandoAccion}
                 />
@@ -357,10 +409,12 @@ export default function OperarioPanel() {
               </>
             )}
 
-            {tab === "transacciones" && (
+            {tab === "pagos" && (
               <>
                 <FormularioTransaccion
+                  tipos={tiposPago}
                   clientes={clientes}
+                  mostrarCliente={true}
                   onRegistrar={manejarRegistrarTransaccion}
                   cargando={cargandoAccion}
                 />
@@ -371,11 +425,55 @@ export default function OperarioPanel() {
                       { key: "tipo", label: "Tipo" },
                       { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
                     ]}
-                    filas={transacciones}
+                    filas={transaccionesPago}
+                    vacio="Sin pagos registrados en este turno."
+                  />
+                </div>
+              </>
+            )}
+
+            {tab === "transacciones" && (
+              <>
+                <FormularioTransaccion
+                  tipos={tiposGasto}
+                  clientes={clientes}
+                  mostrarCliente={false}
+                  onRegistrar={manejarRegistrarTransaccion}
+                  cargando={cargandoAccion}
+                />
+                <div style={{ marginTop: "var(--spacing-6)" }}>
+                  <RegistrosTabla
+                    columnas={[
+                      { key: "id", label: "ID", mono: true },
+                      { key: "tipo", label: "Tipo" },
+                      { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
+                    ]}
+                    filas={transaccionesGasto}
                     vacio="Sin transacciones registradas en este turno."
                   />
                 </div>
               </>
+            )}
+
+            {tab === "inventario" && (
+              <div>
+                <h3 style={{ marginBottom: "var(--spacing-4)" }}>
+                  Inventario — Isla {turnoSeleccionado?.isla}
+                </h3>
+                {inventario.length === 0 ? (
+                  <div className="empty-state">No hay inventario registrado para esta isla.</div>
+                ) : (
+                  <RegistrosTabla
+                    columnas={[
+                      { key: "bodega_nombre", label: "Bodega" },
+                      { key: "codigo", label: "Producto" },
+                      { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
+                    ]}
+                    filas={inventario}
+                    vacio="Sin inventario."
+                  />
+                )}
+              </div>
             )}
           </div>
         )}

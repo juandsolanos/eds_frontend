@@ -1,23 +1,9 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { api } from "../api/client";
+import { useState } from "react";
 
-export default function FormularioTransaccion({ clientes, onRegistrar, cargando }) {
-  const { token } = useAuth();
-  const [tipos, setTipos] = useState([]);
-  const [tipo, setTipo] = useState("");
+export default function FormularioTransaccion({ tipos, clientes, mostrarCliente = true, onRegistrar, cargando }) {
+  const [tipo, setTipo] = useState(tipos.length > 0 ? tipos[0].id : "");
   const [valor, setValor] = useState("");
   const [clienteId, setClienteId] = useState("");
-
-  useEffect(() => {
-    const ctrl = new AbortController();
-    api.tiposTransaccion.listar(token, { signal: ctrl.signal }).then((data) => {
-      console.log(data);
-      setTipos(data);
-      if (data.length > 0) setTipo(data[0].tipo);
-    }).catch(() => setTipos([]));
-    return () => ctrl.abort();
-  }, [token]);
 
   function limpiar() {
     setValor("");
@@ -29,7 +15,7 @@ export default function FormularioTransaccion({ clientes, onRegistrar, cargando 
     const ok = await onRegistrar({
       tipo,
       valor: Number(valor),
-      cliente_id: clienteId ? Number(clienteId) : null,
+      cliente_id: mostrarCliente && clienteId ? Number(clienteId) : null,
     });
     if (ok) limpiar();
   }
@@ -60,21 +46,23 @@ export default function FormularioTransaccion({ clientes, onRegistrar, cargando 
           />
         </div>
 
-        <div className="field field--full">
-          <label htmlFor="cliente">Cliente (opcional)</label>
-          <select id="cliente" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
-            <option value="">Sin cliente asociado</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre} ({c.tipo})
-              </option>
-            ))}
-          </select>
-        </div>
+        {mostrarCliente && (
+          <div className="field field--full">
+            <label htmlFor="cliente">Cliente (opcional)</label>
+            <select id="cliente" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+              <option value="">Sin cliente asociado</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} ({c.tipo})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="field field--full">
           <button type="submit" className="btn btn--primary" disabled={cargando}>
-            {cargando ? "Registrando..." : "Registrar transacción"}
+            {cargando ? "Registrando..." : "Registrar"}
           </button>
         </div>
       </div>
