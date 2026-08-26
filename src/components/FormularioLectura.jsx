@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 
@@ -50,6 +50,8 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState(null);
 
+  const cancelarRef = useRef(null);
+
   const mangueraIdsLeidas = new Set((lecturas || []).map((l) => l.manguera_id));
 
   function seleccionarManguera(manguera) {
@@ -69,6 +71,21 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
     setTexto("");
     setErrorFoto(null);
   }
+
+  useEffect(() => {
+    if (mangueraActiva && cancelarRef.current) {
+      cancelarRef.current.focus();
+    }
+  }, [mangueraActiva]);
+
+  useEffect(() => {
+    if (!mangueraActiva) return;
+    function manejarTecla(e) {
+      if (e.key === "Escape") cancelar();
+    }
+    document.addEventListener("keydown", manejarTecla);
+    return () => document.removeEventListener("keydown", manejarTecla);
+  }, [mangueraActiva]);
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
@@ -103,13 +120,11 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
       <div className="manguera-list">
         {mangueras.map((m) => {
           const leida = mangueraIdsLeidas.has(m.id);
-          const activa = mangueraActiva === m.id;
-          const lectura = leida ? lecturas.find((l) => l.manguera_id === m.id) : null;
 
           return (
             <div
               key={m.id}
-              className={`manguera-item ${leida ? "manguera-item--leida" : ""} ${activa ? "manguera-item--activa" : ""}`}
+              className={`manguera-item ${leida ? "manguera-item--leida" : ""}`}
             >
               <div className="manguera-item__info">
                 <span className={`manguera-item__badge ${leida ? "manguera-item__badge--ok" : "manguera-item__badge--pend"}`}>
@@ -119,14 +134,17 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                   <div className="manguera-item__nombre">
                     Manguera {m.id} &mdash; {m.nombre_combustible || m.codigo_combustible}
                   </div>
-                  {leida && lectura && (
+                  {leida && (
                     <div className="manguera-item__resumen">
-                      {nfMiles.format(lectura.lectura_final - lectura.lectura_inicial)} gal
+                      {(() => {
+                        const lectura = lecturas.find((l) => l.manguera_id === m.id);
+                        return lectura ? `${nfMiles.format(lectura.lectura_final - lectura.lectura_inicial)} gal` : null;
+                      })()}
                     </div>
                   )}
                 </div>
               </div>
-              {!leida && !activa && (
+              {!leida && (
                 <button
                   type="button"
                   className="btn btn--primary btn--sm"
@@ -134,16 +152,6 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                   disabled={cargando || subiendoFoto}
                 >
                   Tomar lectura
-                </button>
-              )}
-              {activa && (
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={cancelar}
-                  disabled={cargando || subiendoFoto}
-                >
-                  Cancelar
                 </button>
               )}
             </div>
@@ -155,74 +163,94 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
       </div>
 
       {mangueraActiva && mangueraSeleccionada && (
-        <form onSubmit={manejarSubmit} style={{ marginTop: "var(--spacing-4)" }}>
-          <div className="form-grid">
-            <div className="field field--full">
-              <label>Manguera seleccionada</label>
-              <div className="manguera-seleccionada">
+        <div className="modal-overlay" onClick={cancelar}>
+          <div className="modal modal--form" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h3 className="modal__title">
                 Manguera {mangueraSeleccionada.id} &mdash; {mangueraSeleccionada.nombre_combustible || mangueraSeleccionada.codigo_combustible}
-              </div>
-            </div>
-
-            <div className="field">
-              <label htmlFor="lectura_inicial">Lectura inicial (galones)</label>
-              <InputMiles
-                id="lectura_inicial"
-                step="0.01"
-                value={lecturaInicial}
-                onChange={() => {}}
-                readOnly
-                className="input--readonly"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="lectura_final">Lectura final (galones)</label>
-              <InputMiles
-                id="lectura_final"
-                step="0.01"
-                value={lecturaFinal}
-                onChange={setLecturaFinal}
-                required
-              />
-            </div>
-
-            <div className="field field--full">
-              <label htmlFor="foto">Foto del medidor (evidencia)</label>
-              <input
-                id="foto"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                capture="environment"
-                onChange={(e) => setFoto(e.target.files[0] ?? null)}
-                required
-              />
-            </div>
-
-            <div className="field field--full">
-              <label htmlFor="texto">Notas / observaciones</label>
-              <input
-                id="texto"
-                type="text"
-                placeholder="Ej. medidor funcionando normal, sin novedades"
-                value={texto}
-                onChange={(e) => setTexto(e.target.value)}
-                required
-              />
-            </div>
-
-            {errorFoto && (
-              <div className="field field--full">
-                <div className="alert alert--error">{errorFoto}</div>
-              </div>
-            )}
-
-            <div className="field field--full">
-              <button type="submit" className="btn btn--primary" disabled={cargando || subiendoFoto}>
-                {subiendoFoto ? "Subiendo foto..." : cargando ? "Registrando..." : "Registrar lectura"}
+              </h3>
+              <button
+                ref={cancelarRef}
+                className="modal__close"
+                onClick={cancelar}
+                disabled={cargando || subiendoFoto}
+                type="button"
+              >
+                &times;
               </button>
             </div>
+
+            <form onSubmit={manejarSubmit}>
+              <div className="form-grid">
+                <div className="field">
+                  <label htmlFor="lectura_inicial">Lectura inicial (galones)</label>
+                  <InputMiles
+                    id="lectura_inicial"
+                    step="0.01"
+                    value={lecturaInicial}
+                    onChange={() => {}}
+                    readOnly
+                    className="input--readonly"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="lectura_final">Lectura final (galones)</label>
+                  <InputMiles
+                    id="lectura_final"
+                    step="0.01"
+                    value={lecturaFinal}
+                    onChange={setLecturaFinal}
+                    required
+                  />
+                </div>
+
+                <div className="field field--full">
+                  <label htmlFor="foto">Foto del medidor (evidencia)</label>
+                  <input
+                    id="foto"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    onChange={(e) => setFoto(e.target.files[0] ?? null)}
+                    required
+                  />
+                </div>
+
+                <div className="field field--full">
+                  <label htmlFor="texto">Notas / observaciones</label>
+                  <input
+                    id="texto"
+                    type="text"
+                    placeholder="Ej. medidor funcionando normal, sin novedades"
+                    value={texto}
+                    onChange={(e) => setTexto(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {errorFoto && (
+                  <div className="field field--full">
+                    <div className="alert alert--error">{errorFoto}</div>
+                  </div>
+                )}
+
+                <div className="field field--full modal__acciones">
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={cancelar}
+                    disabled={cargando || subiendoFoto}
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn--primary" disabled={cargando || subiendoFoto}>
+                    {subiendoFoto ? "Subiendo foto..." : cargando ? "Registrando..." : "Registrar lectura"}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       )}
     </div>
   );

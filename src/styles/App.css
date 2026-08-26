@@ -369,6 +369,39 @@
   gap: var(--spacing-3);
 }
 
+/* -------------------- Modal de formulario (lectura) -------------------- */
+.modal--form {
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-4);
+}
+
+.modal__title {
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+
+.modal__close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: var(--spacing-1);
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  color: var(--text);
+}
+
 /* -------------------- Lista de mangueras -------------------- */
 .manguera-list {
   display: flex;
