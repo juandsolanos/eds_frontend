@@ -344,6 +344,7 @@ export default function OperarioPanel() {
               <>
                 <FormularioLectura
                   mangueras={mangueras}
+                  lecturas={lecturas}
                   lecturasCierre={lecturasCierre}
                   onRegistrar={manejarRegistrarLectura}
                   cargando={cargandoAccion}

@@ -38,10 +38,23 @@ function InputMiles({ value, onChange, step, required, id, ...rest }) {
   );
 }
 
-export default function FormularioLectura({ mangueras, lecturasCierre, onRegistrar, cargando }) {
+function toLocalDatetime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function ahoraLocalDatetime() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export default function FormularioLectura({ mangueras, lecturas, lecturasCierre, onRegistrar, cargando }) {
   const { token } = useAuth();
 
-  const [manguera, setManguera] = useState("");
+  const [mangueraActiva, setMangueraActiva] = useState(null);
   const [tiempoInicial, setTiempoInicial] = useState("");
   const [tiempoFinal, setTiempoFinal] = useState("");
   const [lecturaInicial, setLecturaInicial] = useState("");
@@ -52,8 +65,23 @@ export default function FormularioLectura({ mangueras, lecturasCierre, onRegistr
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState(null);
 
-  function limpiar() {
-    setManguera("");
+  const mangueraIdsLeidas = new Set((lecturas || []).map((l) => l.manguera_id));
+
+  function seleccionarManguera(mangueraId) {
+    setMangueraActiva(mangueraId);
+    setLecturaInicial("");
+    setLecturaFinal("");
+    setFoto(null);
+    setTexto("");
+    setErrorFoto(null);
+
+    const cierre = (lecturasCierre || []).find((c) => c.manguera_id === mangueraId);
+    setTiempoInicial(cierre?.tiempo_final ? toLocalDatetime(cierre.tiempo_final) : "");
+    setTiempoFinal(ahoraLocalDatetime());
+  }
+
+  function cancelar() {
+    setMangueraActiva(null);
     setTiempoInicial("");
     setTiempoFinal("");
     setLecturaInicial("");
@@ -63,15 +91,11 @@ export default function FormularioLectura({ mangueras, lecturasCierre, onRegistr
     setErrorFoto(null);
   }
 
-  // Pre-fill cuando se selecciona una manguera
   useEffect(() => {
-    if (!manguera || !lecturasCierre) return;
-    const cierre = lecturasCierre.find((c) => c.manguera_id === Number(manguera));
-    if (cierre) {
-      setTiempoInicial(cierre.tiempo_final ? toLocalDatetime(cierre.tiempo_final) : "");
-      setLecturaInicial(String(cierre.lectura_final));
+    if (mangueraActiva) {
+      setTiempoFinal(ahoraLocalDatetime());
     }
-  }, [manguera, lecturasCierre]);
+  }, [mangueraActiva]);
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
@@ -90,7 +114,7 @@ export default function FormularioLectura({ mangueras, lecturasCierre, onRegistr
     setSubiendoFoto(false);
 
     const ok = await onRegistrar({
-      manguera_id: Number(manguera),
+      manguera_id: mangueraActiva,
       tiempo_inicial: tiempoInicial,
       tiempo_final: tiempoFinal,
       lectura_inicial: Number(parseMiles(String(lecturaInicial))),
@@ -98,111 +122,157 @@ export default function FormularioLectura({ mangueras, lecturasCierre, onRegistr
       foto_url: fotoUrl,
       texto,
     });
-    if (ok) limpiar();
+    if (ok) cancelar();
   }
 
+  const mangueraSeleccionada = mangueras.find((m) => m.id === mangueraActiva);
+
   return (
-    <form onSubmit={manejarSubmit}>
-      <div className="form-grid">
-        <div className="field">
-          <label htmlFor="manguera">Manguera</label>
-          <select id="manguera" value={manguera} onChange={(e) => setManguera(e.target.value)} required>
-            <option value="">Selecciona...</option>
-            {mangueras.map((m) => (
-              <option key={m.id} value={m.id}>
-                Manguera {m.id} — {m.nombre_combustible || m.codigo_combustible}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div>
+      <div className="manguera-list">
+        {mangueras.map((m) => {
+          const leida = mangueraIdsLeidas.has(m.id);
+          const activa = mangueraActiva === m.id;
+          const lectura = leida ? lecturas.find((l) => l.manguera_id === m.id) : null;
 
-        <div />
-
-        <div className="field">
-          <label htmlFor="tiempo_inicial">Hora inicial</label>
-          <input
-            id="tiempo_inicial"
-            type="datetime-local"
-            value={tiempoInicial}
-            onChange={(e) => setTiempoInicial(e.target.value)}
-            required
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="tiempo_final">Hora final</label>
-          <input
-            id="tiempo_final"
-            type="datetime-local"
-            value={tiempoFinal}
-            onChange={(e) => setTiempoFinal(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="lectura_inicial">Lectura inicial (galones)</label>
-          <InputMiles
-            id="lectura_inicial"
-            step="0.01"
-            value={lecturaInicial}
-            onChange={setLecturaInicial}
-            required
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="lectura_final">Lectura final (galones)</label>
-          <InputMiles
-            id="lectura_final"
-            step="0.01"
-            value={lecturaFinal}
-            onChange={setLecturaFinal}
-            required
-          />
-        </div>
-
-        <div className="field field--full">
-          <label htmlFor="foto">Foto del medidor (evidencia)</label>
-          <input
-            id="foto"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            capture="environment"
-            onChange={(e) => setFoto(e.target.files[0] ?? null)}
-            required
-          />
-        </div>
-
-        <div className="field field--full">
-          <label htmlFor="texto">Notas / observaciones</label>
-          <input
-            id="texto"
-            type="text"
-            placeholder="Ej. medidor funcionando normal, sin novedades"
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            required
-          />
-        </div>
-
-        {errorFoto && (
-          <div className="field field--full">
-            <div className="alert alert--error">{errorFoto}</div>
-          </div>
+          return (
+            <div
+              key={m.id}
+              className={`manguera-item ${leida ? "manguera-item--leida" : ""} ${activa ? "manguera-item--activa" : ""}`}
+            >
+              <div className="manguera-item__info">
+                <span className={`manguera-item__badge ${leida ? "manguera-item__badge--ok" : "manguera-item__badge--pend"}`}>
+                  {leida ? "\u2713" : "\u25CB"}
+                </span>
+                <div>
+                  <div className="manguera-item__nombre">
+                    Manguera {m.id} &mdash; {m.nombre_combustible || m.codigo_combustible}
+                  </div>
+                  {leida && lectura && (
+                    <div className="manguera-item__resumen">
+                      {nfMiles.format(lectura.lectura_final - lectura.lectura_inicial)} gal
+                    </div>
+                  )}
+                </div>
+              </div>
+              {!leida && !activa && (
+                <button
+                  type="button"
+                  className="btn btn--primary btn--sm"
+                  onClick={() => seleccionarManguera(m.id)}
+                  disabled={cargando || subiendoFoto}
+                >
+                  Tomar lectura
+                </button>
+              )}
+              {activa && (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={cancelar}
+                  disabled={cargando || subiendoFoto}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {mangueras.length === 0 && (
+          <div className="empty-state">No hay mangueras configuradas para esta isla.</div>
         )}
-
-        <div className="field field--full">
-          <button type="submit" className="btn btn--primary" disabled={cargando || subiendoFoto}>
-            {subiendoFoto ? "Subiendo foto..." : cargando ? "Registrando..." : "Registrar lectura"}
-          </button>
-        </div>
       </div>
-    </form>
-  );
-}
 
-function toLocalDatetime(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      {mangueraActiva && mangueraSeleccionada && (
+        <form onSubmit={manejarSubmit} style={{ marginTop: "var(--spacing-4)" }}>
+          <div className="form-grid">
+            <div className="field field--full">
+              <label>Manguera seleccionada</label>
+              <div className="manguera-seleccionada">
+                Manguera {mangueraSeleccionada.id} &mdash; {mangueraSeleccionada.nombre_combustible || mangueraSeleccionada.codigo_combustible}
+              </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="tiempo_inicial">Hora inicial</label>
+              <input
+                id="tiempo_inicial"
+                type="datetime-local"
+                value={tiempoInicial}
+                readOnly
+                className="input--readonly"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="tiempo_final">Hora final</label>
+              <input
+                id="tiempo_final"
+                type="datetime-local"
+                value={tiempoFinal}
+                readOnly
+                className="input--readonly"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="lectura_inicial">Lectura inicial (galones)</label>
+              <InputMiles
+                id="lectura_inicial"
+                step="0.01"
+                value={lecturaInicial}
+                onChange={setLecturaInicial}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="lectura_final">Lectura final (galones)</label>
+              <InputMiles
+                id="lectura_final"
+                step="0.01"
+                value={lecturaFinal}
+                onChange={setLecturaFinal}
+                required
+              />
+            </div>
+
+            <div className="field field--full">
+              <label htmlFor="foto">Foto del medidor (evidencia)</label>
+              <input
+                id="foto"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                onChange={(e) => setFoto(e.target.files[0] ?? null)}
+                required
+              />
+            </div>
+
+            <div className="field field--full">
+              <label htmlFor="texto">Notas / observaciones</label>
+              <input
+                id="texto"
+                type="text"
+                placeholder="Ej. medidor funcionando normal, sin novedades"
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                required
+              />
+            </div>
+
+            {errorFoto && (
+              <div className="field field--full">
+                <div className="alert alert--error">{errorFoto}</div>
+              </div>
+            )}
+
+            <div className="field field--full">
+              <button type="submit" className="btn btn--primary" disabled={cargando || subiendoFoto}>
+                {subiendoFoto ? "Subiendo foto..." : cargando ? "Registrando..." : "Registrar lectura"}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+    </div>
+  );
 }
