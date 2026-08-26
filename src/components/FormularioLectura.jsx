@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 
@@ -38,25 +38,10 @@ function InputMiles({ value, onChange, step, required, id, ...rest }) {
   );
 }
 
-function toLocalDatetime(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function ahoraLocalDatetime() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-export default function FormularioLectura({ mangueras, lecturas, lecturasCierre, onRegistrar, cargando }) {
+export default function FormularioLectura({ mangueras, lecturas, onRegistrar, cargando }) {
   const { token } = useAuth();
 
   const [mangueraActiva, setMangueraActiva] = useState(null);
-  const [tiempoInicial, setTiempoInicial] = useState("");
-  const [tiempoFinal, setTiempoFinal] = useState("");
   const [lecturaInicial, setLecturaInicial] = useState("");
   const [lecturaFinal, setLecturaFinal] = useState("");
   const [foto, setFoto] = useState(null);
@@ -67,35 +52,23 @@ export default function FormularioLectura({ mangueras, lecturas, lecturasCierre,
 
   const mangueraIdsLeidas = new Set((lecturas || []).map((l) => l.manguera_id));
 
-  function seleccionarManguera(mangueraId) {
-    setMangueraActiva(mangueraId);
-    setLecturaInicial("");
+  function seleccionarManguera(manguera) {
+    setMangueraActiva(manguera.id);
+    setLecturaInicial(String(manguera.ultima_lectura || 0));
     setLecturaFinal("");
     setFoto(null);
     setTexto("");
     setErrorFoto(null);
-
-    const cierre = (lecturasCierre || []).find((c) => c.manguera_id === mangueraId);
-    setTiempoInicial(cierre?.tiempo_final ? toLocalDatetime(cierre.tiempo_final) : "");
-    setTiempoFinal(ahoraLocalDatetime());
   }
 
   function cancelar() {
     setMangueraActiva(null);
-    setTiempoInicial("");
-    setTiempoFinal("");
     setLecturaInicial("");
     setLecturaFinal("");
     setFoto(null);
     setTexto("");
     setErrorFoto(null);
   }
-
-  useEffect(() => {
-    if (mangueraActiva) {
-      setTiempoFinal(ahoraLocalDatetime());
-    }
-  }, [mangueraActiva]);
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
@@ -115,8 +88,6 @@ export default function FormularioLectura({ mangueras, lecturas, lecturasCierre,
 
     const ok = await onRegistrar({
       manguera_id: mangueraActiva,
-      tiempo_inicial: tiempoInicial,
-      tiempo_final: tiempoFinal,
       lectura_inicial: Number(parseMiles(String(lecturaInicial))),
       lectura_final: Number(parseMiles(String(lecturaFinal))),
       foto_url: fotoUrl,
@@ -159,7 +130,7 @@ export default function FormularioLectura({ mangueras, lecturas, lecturasCierre,
                 <button
                   type="button"
                   className="btn btn--primary btn--sm"
-                  onClick={() => seleccionarManguera(m.id)}
+                  onClick={() => seleccionarManguera(m)}
                   disabled={cargando || subiendoFoto}
                 >
                   Tomar lectura
@@ -194,34 +165,14 @@ export default function FormularioLectura({ mangueras, lecturas, lecturasCierre,
             </div>
 
             <div className="field">
-              <label htmlFor="tiempo_inicial">Hora inicial</label>
-              <input
-                id="tiempo_inicial"
-                type="datetime-local"
-                value={tiempoInicial}
-                readOnly
-                className="input--readonly"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="tiempo_final">Hora final</label>
-              <input
-                id="tiempo_final"
-                type="datetime-local"
-                value={tiempoFinal}
-                readOnly
-                className="input--readonly"
-              />
-            </div>
-
-            <div className="field">
               <label htmlFor="lectura_inicial">Lectura inicial (galones)</label>
               <InputMiles
                 id="lectura_inicial"
                 step="0.01"
                 value={lecturaInicial}
-                onChange={setLecturaInicial}
-                required
+                onChange={() => {}}
+                readOnly
+                className="input--readonly"
               />
             </div>
             <div className="field">

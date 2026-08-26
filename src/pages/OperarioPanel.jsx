@@ -39,7 +39,6 @@ export default function OperarioPanel() {
   const [ventasGranel, setVentasGranel] = useState([]);
   const [ventas, setVentas] = useState([]);
   const [transacciones, setTransacciones] = useState([]);
-  const [lecturasCierre, setLecturasCierre] = useState([]);
   const [inventario, setInventario] = useState([]);
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
@@ -65,7 +64,6 @@ export default function OperarioPanel() {
         setVentasGranel([]);
         setVentas([]);
         setTransacciones([]);
-        setLecturasCierre([]);
         setInventario([]);
         return;
       }
@@ -79,15 +77,6 @@ export default function OperarioPanel() {
       setVentasGranel(vg);
       setVentas(v);
       setTransacciones(t);
-
-      // Cargar lecturas de cierre del turno anterior para prefill
-      try {
-        const anterior = await api.turnoAnterior(token, turno.id, { signal });
-        const cierre = await api.lecturasCierre(token, anterior.id, { signal });
-        setLecturasCierre(cierre);
-      } catch {
-        setLecturasCierre([]);
-      }
 
       // Cargar inventario de la isla del turno
       try {
@@ -146,7 +135,6 @@ export default function OperarioPanel() {
       setVentasGranel([]);
       setVentas([]);
       setTransacciones([]);
-      setLecturasCierre([]);
       setInventario([]);
     }
     return () => ctrl.abort();
@@ -345,7 +333,6 @@ export default function OperarioPanel() {
                 <FormularioLectura
                   mangueras={mangueras}
                   lecturas={lecturas}
-                  lecturasCierre={lecturasCierre}
                   onRegistrar={manejarRegistrarLectura}
                   cargando={cargandoAccion}
                 />
