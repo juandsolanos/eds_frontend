@@ -45,7 +45,6 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
   const [lecturaInicial, setLecturaInicial] = useState("");
   const [lecturaFinal, setLecturaFinal] = useState("");
   const [foto, setFoto] = useState(null);
-  const [texto, setTexto] = useState("");
 
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState(null);
@@ -59,7 +58,6 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
     setLecturaInicial(String(manguera.ultima_lectura || 0));
     setLecturaFinal("");
     setFoto(null);
-    setTexto("");
     setErrorFoto(null);
   }
 
@@ -68,7 +66,6 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
     setLecturaInicial("");
     setLecturaFinal("");
     setFoto(null);
-    setTexto("");
     setErrorFoto(null);
   }
 
@@ -108,7 +105,6 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
       lectura_inicial: Number(parseMiles(String(lecturaInicial))),
       lectura_final: Number(parseMiles(String(lecturaFinal))),
       foto_url: fotoUrl,
-      texto,
     });
     if (ok) cancelar();
   }
@@ -212,18 +208,6 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                     accept="image/jpeg,image/png,image/webp"
                     capture="environment"
                     onChange={(e) => setFoto(e.target.files[0] ?? null)}
-                    required
-                  />
-                </div>
-
-                <div className="field field--full">
-                  <label htmlFor="texto">Notas / observaciones</label>
-                  <input
-                    id="texto"
-                    type="text"
-                    placeholder="Ej. medidor funcionando normal, sin novedades"
-                    value={texto}
-                    onChange={(e) => setTexto(e.target.value)}
                     required
                   />
                 </div>

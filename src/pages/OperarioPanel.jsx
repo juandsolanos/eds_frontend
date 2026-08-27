@@ -163,11 +163,11 @@ export default function OperarioPanel() {
     }
   }
 
-  async function manejarCerrarTurno() {
+  async function manejarCerrarTurno(texto = "") {
     setConfirmarCerrarTurno(false);
     setCargandoAccion(true);
     try {
-      await api.cerrarTurno(token, turnoSeleccionado.id);
+      await api.cerrarTurno(token, turnoSeleccionado.id, texto);
       mostrarExito("Turno cerrado.");
       setTurnoSeleccionado(null);
       const disponibles = await cargarTurnos();
@@ -346,7 +346,6 @@ export default function OperarioPanel() {
                         render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
                       },
                       { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
-                      { key: "texto", label: "Notas" },
                     ]}
                     filas={lecturas}
                     vacio="Sin lecturas registradas en este turno."
@@ -480,6 +479,7 @@ export default function OperarioPanel() {
       <ConfirmModal
         open={confirmarCerrarTurno}
         mensaje={`¿Cerrar el turno ${turnoSeleccionado?.id}? No podrás registrar más movimientos en él.`}
+        textoLabel="Observaciones del cierre (opcional)"
         onConfirmar={manejarCerrarTurno}
         onCancelar={() => setConfirmarCerrarTurno(false)}
       />

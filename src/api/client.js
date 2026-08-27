@@ -100,8 +100,8 @@ export const api = {
     request("/api/turnos/abrir", { method: "POST", token, body: { isla } }),
   solicitarAbrirTurno: (token, turnoId) =>
     request(`/api/turnos/${turnoId}/abrir`, { method: "POST", token }),
-  cerrarTurno: (token, turnoId) =>
-    request(`/api/turnos/${turnoId}/cerrar`, { method: "POST", token }),
+  cerrarTurno: (token, turnoId, texto = "") =>
+    request(`/api/turnos/${turnoId}/cerrar`, { method: "POST", token, body: { texto } }),
   crearTurno: (token, datos) =>
     request("/api/turnos/", { method: "POST", token, body: datos }),
   actualizarTurno: (token, turnoId, datos) =>
