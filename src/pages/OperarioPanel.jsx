@@ -14,11 +14,16 @@ import { formatMoney, formatVol, formatCant } from "../utils/format";
 
 const TABS = [
   { key: "lecturas", label: "Lecturas de manguera" },
-  { key: "combustible", label: "Ventas de combustible" },
   { key: "ventas", label: "Ventas de complementarios" },
-  { key: "pagos", label: "Pagos" },
+  { key: "pagos", label: "Crédito" },
   { key: "transacciones", label: "Transacciones" },
+  { key: "otrasIslas", label: "Venta en otras islas" },
   { key: "inventario", label: "Inventario" },
+];
+
+const SUBTABS_OTRAS_ISLAS = [
+  { key: "combustible", label: "Venta de combustible" },
+  { key: "complementarios", label: "Venta de complementarios" },
 ];
 
 const ESTADOS_PERMITIDOS = ["creado", "en_espera", "abierto"];
@@ -33,8 +38,12 @@ export default function OperarioPanel() {
   const [productos, setProductos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [tiposTransaccion, setTiposTransaccion] = useState([]);
+  const [islas, setIslas] = useState([]);
 
   const [tab, setTab] = useState("lecturas");
+  const [otraIsla, setOtraIsla] = useState("");
+  const [subtabOtras, setSubtabOtras] = useState("combustible");
+  const [otraIslaData, setOtraIslaData] = useState({ mangueras: [], inventario: [] });
   const [lecturas, setLecturas] = useState([]);
   const [ventasGranel, setVentasGranel] = useState([]);
   const [ventas, setVentas] = useState([]);
@@ -107,6 +116,7 @@ export default function OperarioPanel() {
     api.listarProductosGranel(token, { signal }).then(setProductosGranel).catch(() => setProductosGranel([]));
     api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => setProductos([]));
     api.listarClientes(token, { signal }).then(setClientes).catch(() => setClientes([]));
+    api.listarIslas(token, { signal }).then(setIslas).catch(() => setIslas([]));
     api.tiposTransaccion.listar(token, { signal }).then(setTiposTransaccion).catch(() => setTiposTransaccion([]));
 
     return () => ctrl.abort();
@@ -125,6 +135,35 @@ export default function OperarioPanel() {
     }
     return () => ctrl.abort();
   }, [token, turnoSeleccionado]);
+
+  // Restablecer la isla destino de "venta en otras islas" cuando cambia
+  // el turno (y por tanto la isla desde la que opera el operario).
+  useEffect(() => {
+    if (!turnoSeleccionado) return;
+    const otras = islas.filter((i) => Number(i.id) !== Number(turnoSeleccionado.isla));
+    setOtraIsla((prev) => {
+      if (prev && otras.some((i) => Number(i.id) === Number(prev))) return prev;
+      return otras.length > 0 ? otras[0].id : "";
+    });
+  }, [islas, turnoSeleccionado]);
+
+  // Cargar mangueras e inventario de la isla destino para filtrar las
+  // opciones de producto de la venta en otras islas.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const { signal } = ctrl;
+    if (!otraIsla) {
+      setOtraIslaData({ mangueras: [], inventario: [] });
+      return;
+    }
+    Promise.all([
+      api.listarManguerasPorIsla(token, otraIsla, { signal }),
+      api.listarInventarioPorIsla(token, otraIsla, { signal }),
+    ])
+      .then(([mangueras, inventario]) => setOtraIslaData({ mangueras, inventario }))
+      .catch(() => setOtraIslaData({ mangueras: [], inventario: [] }));
+    return () => ctrl.abort();
+  }, [token, otraIsla]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -200,7 +239,10 @@ export default function OperarioPanel() {
   async function manejarRegistrarVentaGranel(datos) {
     setCargandoAccion(true);
     try {
-      await api.crearVentaGranel(token, datos);
+      await api.crearVentaGranel(token, {
+        ...datos,
+        isla: datos.isla ?? turnoSeleccionado.isla,
+      });
       mostrarExito("Venta de combustible registrada.");
       await cargarRegistrosDelTurno(turnoSeleccionado);
       return true;
@@ -215,7 +257,10 @@ export default function OperarioPanel() {
   async function manejarRegistrarVenta(datos) {
     setCargandoAccion(true);
     try {
-      await api.crearVenta(token, datos);
+      await api.crearVenta(token, {
+        ...datos,
+        isla: datos.isla ?? turnoSeleccionado.isla,
+      });
       mostrarExito("Venta registrada.");
       await cargarRegistrosDelTurno(turnoSeleccionado);
       return true;
@@ -244,16 +289,28 @@ export default function OperarioPanel() {
 
   const turnoAbierto = turnoSeleccionado?.estado === "abierto";
 
-  // Separar transacciones por signo: pagos (signo=1) y gastos (signo=-1)
-  const tiposPago = tiposTransaccion.filter((t) => t.signo === 1);
+  // Los tipos de transacción y su signo vienen del backend ("TiposTransaccion").
+  // La pestaña "Crédito" muestra únicamente las de tipo "credito"; la pestaña
+  // "Transacciones" muestra los gastos (signo = -1).
   const tiposGasto = tiposTransaccion.filter((t) => t.signo === -1);
+  const tiposCredito = tiposTransaccion.filter((t) => t.tipo === "credito");
 
-  const transaccionesPago = transacciones.filter((t) =>
-    tiposPago.some((tp) => tp.id === t.tipo)
+  const transaccionesCredito = transacciones.filter((t) =>
+    tiposCredito.some((tc) => tc.id === t.tipo)
   );
   const transaccionesGasto = transacciones.filter((t) =>
     tiposGasto.some((tg) => tg.id === t.tipo)
   );
+
+  // Filtros para la venta en otras islas: combustible disponible según las
+  // mangueras de la isla seleccionada, y complementarios según su inventario.
+  const otrasIslas = islas.filter((i) => Number(i.id) !== Number(turnoSeleccionado?.isla));
+  const codigosCombustibleOtra = new Set(otraIslaData.mangueras.map((m) => m.codigo_combustible));
+  const productosGranelOtra = productosGranel.filter((p) => codigosCombustibleOtra.has(p.codigo));
+  const codigosInventarioOtra = new Set(otraIslaData.inventario.map((i) => i.codigo));
+  const productosOtra = productos.filter((p) => codigosInventarioOtra.has(p.codigo));
+  const ventasGranelOtra = ventasGranel.filter((v) => Number(v.isla) === Number(otraIsla));
+  const ventasOtra = ventas.filter((v) => Number(v.isla) === Number(otraIsla));
 
   return (
     <div className="app-shell">
@@ -354,27 +411,6 @@ export default function OperarioPanel() {
               </>
             )}
 
-            {tab === "combustible" && (
-              <>
-                <FormularioVentaGranel
-                  productos={productosGranel}
-                  onRegistrar={manejarRegistrarVentaGranel}
-                  cargando={cargandoAccion}
-                />
-                <div style={{ marginTop: "var(--spacing-6)" }}>
-                  <RegistrosTabla
-                    columnas={[
-                      { key: "codigo", label: "Combustible" },
-                      { key: "cantidad", label: "Galones", render: (f) => formatVol(f.cantidad) },
-                      { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
-                    ]}
-                    filas={ventasGranel}
-                    vacio="Sin ventas de combustible registradas en este turno."
-                  />
-                </div>
-              </>
-            )}
-
             {tab === "ventas" && (
               <>
                 <FormularioVenta
@@ -399,7 +435,7 @@ export default function OperarioPanel() {
             {tab === "pagos" && (
               <>
                 <FormularioTransaccion
-                  tipos={tiposPago}
+                  tipos={tiposCredito}
                   clientes={clientes}
                   mostrarCliente={true}
                   onRegistrar={manejarRegistrarTransaccion}
@@ -412,8 +448,8 @@ export default function OperarioPanel() {
                       { key: "tipo", label: "Tipo" },
                       { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
                     ]}
-                    filas={transaccionesPago}
-                    vacio="Sin pagos registrados en este turno."
+                    filas={transaccionesCredito}
+                    vacio="Sin créditos registrados en este turno."
                   />
                 </div>
               </>
@@ -440,6 +476,86 @@ export default function OperarioPanel() {
                   />
                 </div>
               </>
+            )}
+
+            {tab === "otrasIslas" && (
+              <div>
+                <div className="tabs">
+                  {SUBTABS_OTRAS_ISLAS.map((st) => (
+                    <button
+                      key={st.key}
+                      className={`tab ${subtabOtras === st.key ? "tab--activo" : ""}`}
+                      onClick={() => setSubtabOtras(st.key)}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="field" style={{ marginTop: "var(--spacing-4)" }}>
+                  <label htmlFor="otra_isla">Isla desde la que vendes</label>
+                  <select
+                    id="otra_isla"
+                    value={otraIsla}
+                    onChange={(e) => setOtraIsla(e.target.value)}
+                    required
+                    style={{ minWidth: 220 }}
+                  >
+                    {otrasIslas.length === 0 && <option value="">No hay otras islas</option>}
+                    {otrasIslas.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        Isla {i.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {!otraIsla ? (
+                  <div className="empty-state">No hay otras islas disponibles.</div>
+                ) : subtabOtras === "combustible" ? (
+                  <>
+                    <FormularioVentaGranel
+                      productos={productosGranelOtra}
+                      onRegistrar={(datos) =>
+                        manejarRegistrarVentaGranel({ ...datos, isla: Number(otraIsla) })
+                      }
+                      cargando={cargandoAccion}
+                    />
+                    <div style={{ marginTop: "var(--spacing-6)" }}>
+                      <RegistrosTabla
+                        columnas={[
+                          { key: "codigo", label: "Combustible" },
+                          { key: "cantidad", label: "Galones", render: (f) => formatVol(f.cantidad) },
+                          { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
+                        ]}
+                        filas={ventasGranelOtra}
+                        vacio="Sin ventas de combustible en esta isla."
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <FormularioVenta
+                      productos={productosOtra}
+                      onRegistrar={(datos) =>
+                        manejarRegistrarVenta({ ...datos, isla: Number(otraIsla) })
+                      }
+                      cargando={cargandoAccion}
+                    />
+                    <div style={{ marginTop: "var(--spacing-6)" }}>
+                      <RegistrosTabla
+                        columnas={[
+                          { key: "codigo", label: "Producto" },
+                          { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
+                          { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
+                        ]}
+                        filas={ventasOtra}
+                        vacio="Sin ventas de complementarios en esta isla."
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             )}
 
             {tab === "inventario" && (
