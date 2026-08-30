@@ -178,6 +178,12 @@ export const api = {
   mangueras: crudEndpoints("/api/mangueras"),
   bodegas: crudEndpoints("/api/bodegas"),
   tiposTransaccion: crudEndpoints("/api/tipos-transaccion"),
+  tareas: crudEndpoints("/api/tareas"),
+
+  // Tareas del turno (operario)
+  tareasActivas: (token, opts) => request("/api/registros-tareas/activo", { token, ...opts }),
+  marcarTareaRealizada: (token, tareaId, realizada) =>
+    request(`/api/registros-tareas/${tareaId}/realizacion`, { method: "PATCH", token, body: { realizada } }),
 
   // Alias de solo lectura usados también desde el panel de operario
   listarMangueras: (token, opts) => request("/api/mangueras/", { token, ...opts }),

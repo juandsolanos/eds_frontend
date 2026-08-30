@@ -93,6 +93,18 @@ const CATALOGOS = [
       { key: "signo", label: "Signo (1 = suma, -1 = resta)", type: "number" },
     ],
   },
+  {
+    key: "tareas",
+    titulo: "Tareas",
+    apiResource: api.tareas,
+    idField: "id",
+    campos: [
+      { key: "consec_turno", label: "Consecutivo de turno (ej. 01)", type: "text" },
+      { key: "isla", label: "Isla", type: "number" },
+      { key: "objetivo", label: "Objetivo", type: "text" },
+      { key: "detalle", label: "Detalle", type: "text" },
+    ],
+  },
 ];
 
 export default function Catalogos() {

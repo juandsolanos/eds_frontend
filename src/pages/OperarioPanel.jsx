@@ -10,6 +10,7 @@ import FormularioVentaGranel from "../components/FormularioVentaGranel";
 import FormularioTransaccion from "../components/FormularioTransaccion";
 import RegistrosTabla from "../components/RegistrosTabla";
 import ConfirmModal from "../components/ConfirmModal";
+import TareasTab from "../components/TareasTab";
 import { formatMoney, formatVol, formatCant } from "../utils/format";
 
 const TABS = [
@@ -19,6 +20,7 @@ const TABS = [
   { key: "transacciones", label: "Transacciones" },
   { key: "otrasIslas", label: "Venta en otras islas" },
   { key: "inventario", label: "Inventario" },
+  { key: "tareas", label: "Tareas" },
 ];
 
 const SUBTABS_OTRAS_ISLAS = [
@@ -49,6 +51,7 @@ export default function OperarioPanel() {
   const [ventas, setVentas] = useState([]);
   const [transacciones, setTransacciones] = useState([]);
   const [inventario, setInventario] = useState([]);
+  const [tareas, setTareas] = useState([]);
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensaje, setMensaje] = useState(null);
@@ -74,18 +77,21 @@ export default function OperarioPanel() {
         setVentas([]);
         setTransacciones([]);
         setInventario([]);
+        setTareas([]);
         return;
       }
-      const [l, vg, v, t] = await Promise.all([
+      const [l, vg, v, t, ta] = await Promise.all([
         api.listarLecturas(token, turno.id, { signal }),
         api.listarVentasGranel(token, turno.id, { signal }),
         api.listarVentas(token, turno.id, { signal }),
         api.listarTransacciones(token, turno.id, { signal }),
+        api.tareasActivas(token, { signal }),
       ]);
       setLecturas(l);
       setVentasGranel(vg);
       setVentas(v);
       setTransacciones(t);
+      setTareas(ta);
 
       // Cargar inventario de la isla del turno
       try {
@@ -175,6 +181,7 @@ export default function OperarioPanel() {
       setVentas([]);
       setTransacciones([]);
       setInventario([]);
+      setTareas([]);
     }
     return () => ctrl.abort();
   }, [turnoSeleccionado, cargarRegistrosDelTurno]);
@@ -278,6 +285,22 @@ export default function OperarioPanel() {
       await api.crearTransaccion(token, datos);
       mostrarExito("Transacción registrada.");
       await cargarRegistrosDelTurno(turnoSeleccionado);
+      return true;
+    } catch (err) {
+      mostrarError(err);
+      return false;
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  async function manejarMarcarTarea(tareaId, realizada) {
+    setCargandoAccion(true);
+    try {
+      await api.marcarTareaRealizada(token, tareaId, realizada);
+      mostrarExito(realizada ? "Tarea marcada como realizada." : "Tarea marcada como pendiente.");
+      const t = await api.tareasActivas(token);
+      setTareas(t);
       return true;
     } catch (err) {
       mostrarError(err);
@@ -577,6 +600,10 @@ export default function OperarioPanel() {
                   />
                 )}
               </div>
+            )}
+
+            {tab === "tareas" && (
+              <TareasTab tareas={tareas} onMarcar={manejarMarcarTarea} cargando={cargandoAccion} />
             )}
           </div>
         )}
