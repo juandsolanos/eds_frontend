@@ -3,14 +3,19 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { formatMoney } from "../../utils/format";
 
+function aISO(fecha) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}`;
+}
+
 function hoyISO() {
-  return new Date().toISOString().slice(0, 10);
+  return aISO(new Date());
 }
 
 function haceDiasISO(dias) {
   const fecha = new Date();
   fecha.setDate(fecha.getDate() - dias);
-  return fecha.toISOString().slice(0, 10);
+  return aISO(fecha);
 }
 
 export default function Dashboard() {
