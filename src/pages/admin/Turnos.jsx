@@ -6,10 +6,11 @@ const ESTADO_COLORS = {
   creado: "#f59e0b",
   en_espera: "#3b82f6",
   abierto: "#10b981",
+  en_revision: "#f97316",
   cerrado: "#6b7280",
 };
 
-const ESTADOS_VALIDOS = ["creado", "en_espera", "abierto", "cerrado"];
+const ESTADOS_VALIDOS = ["creado", "en_espera", "abierto", "en_revision", "cerrado"];
 
 const btnBase = {
   padding: "4px 10px",

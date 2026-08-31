@@ -28,7 +28,7 @@ const SUBTABS_OTRAS_ISLAS = [
   { key: "complementarios", label: "Venta de complementarios" },
 ];
 
-const ESTADOS_PERMITIDOS = ["creado", "en_espera", "abierto"];
+const ESTADOS_PERMITIDOS = ["creado", "en_espera", "abierto", "en_revision"];
 
 export default function OperarioPanel() {
   const { token, usuario, logout } = useAuth();
@@ -56,6 +56,10 @@ export default function OperarioPanel() {
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [confirmarCerrarTurno, setConfirmarCerrarTurno] = useState(false);
+  const [turnoEnRevision, setTurnoEnRevision] = useState(null);
+  const [tareasRevision, setTareasRevision] = useState([]);
+  const [lecturasRevision, setLecturasRevision] = useState([]);
+  const [inventarioRevision, setInventarioRevision] = useState([]);
 
   const cargarTurnos = useCallback(async ({ signal } = {}) => {
     try {
@@ -66,6 +70,15 @@ export default function OperarioPanel() {
     } catch {
       setTurnos([]);
       return [];
+    }
+  }, [token]);
+
+  const cargarRevision = useCallback(async ({ signal } = {}) => {
+    try {
+      const turno = await api.turnoEnRevision(token, { signal });
+      setTurnoEnRevision(turno || null);
+    } catch {
+      setTurnoEnRevision(null);
     }
   }, [token]);
 
@@ -119,6 +132,7 @@ export default function OperarioPanel() {
         setTurnoSeleccionado(null);
       }
     });
+    cargarRevision({ signal });
     api.listarProductosGranel(token, { signal }).then(setProductosGranel).catch(() => setProductosGranel([]));
     api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => setProductos([]));
     api.listarClientes(token, { signal }).then(setClientes).catch(() => setClientes([]));
@@ -126,7 +140,7 @@ export default function OperarioPanel() {
     api.tiposTransaccion.listar(token, { signal }).then(setTiposTransaccion).catch(() => setTiposTransaccion([]));
 
     return () => ctrl.abort();
-  }, [token, cargarTurnos]);
+  }, [token, cargarTurnos, cargarRevision]);
 
   // Cargar mangueras filtradas por isla del turno seleccionado
   useEffect(() => {
@@ -186,6 +200,32 @@ export default function OperarioPanel() {
     return () => ctrl.abort();
   }, [turnoSeleccionado, cargarRegistrosDelTurno]);
 
+  useEffect(() => {
+    const ctrl = new AbortController();
+    if (!turnoEnRevision) {
+      setLecturasRevision([]);
+      setTareasRevision([]);
+      setInventarioRevision([]);
+      return;
+    }
+    Promise.all([
+      api.listarLecturasPorTurno(token, turnoEnRevision.id, { signal: ctrl.signal }),
+      api.tareasPorTurno(token, turnoEnRevision.id, { signal: ctrl.signal }),
+      api.listarInventarioPorIsla(token, turnoEnRevision.isla, { signal: ctrl.signal }),
+    ])
+      .then(([lecturas, tareas, inv]) => {
+        setLecturasRevision(lecturas);
+        setTareasRevision(tareas);
+        setInventarioRevision(inv);
+      })
+      .catch(() => {
+        setLecturasRevision([]);
+        setTareasRevision([]);
+        setInventarioRevision([]);
+      });
+    return () => ctrl.abort();
+  }, [turnoEnRevision, token]);
+
   function mostrarError(err) {
     setMensaje({ tipo: "error", texto: err.detail || "Ocurrió un error inesperado." });
   }
@@ -214,8 +254,26 @@ export default function OperarioPanel() {
     setCargandoAccion(true);
     try {
       await api.cerrarTurno(token, turnoSeleccionado.id, texto);
-      mostrarExito("Turno cerrado.");
+      mostrarExito("Turno enviado a revisión.");
       setTurnoSeleccionado(null);
+      const disponibles = await cargarTurnos();
+      if (disponibles.length > 0) {
+        const abierto = disponibles.find((t) => t.estado === "abierto");
+        setTurnoSeleccionado(abierto || disponibles[0]);
+      }
+    } catch (err) {
+      mostrarError(err);
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  async function manejarRevisar(aprobado) {
+    setCargandoAccion(true);
+    try {
+      await api.revisarTurno(token, turnoEnRevision.id, aprobado);
+      mostrarExito(aprobado ? "Turno aprobado y cerrado." : "Turno rechazado. Vuelve a estar abierto.");
+      await cargarRevision();
       const disponibles = await cargarTurnos();
       if (disponibles.length > 0) {
         const abierto = disponibles.find((t) => t.estado === "abierto");
@@ -608,14 +666,124 @@ export default function OperarioPanel() {
           </div>
         )}
 
-        {!turnoAbierto && turnoSeleccionado && turnoSeleccionado.estado !== "abierto" && (
-          <div className="card" style={{ textAlign: "center", padding: "var(--spacing-8)" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>
-              {turnoSeleccionado.estado === "en_espera"
-                ? "Este turno está en espera. Solicita abrirlo para comenzar a operar."
-                : "Este turno aún no está disponible. Espera a que llegue su hora de inicio."}
+        {turnoEnRevision && (
+          <div className="card" style={{ borderColor: "#f97316" }}>
+            <h3 style={{ marginBottom: "var(--spacing-4)" }}>
+              Revisión del turno {turnoEnRevision.id} — Isla {turnoEnRevision.isla}
+            </h3>
+            <p style={{ color: "var(--text-muted)", marginBottom: "var(--spacing-6)" }}>
+              El operario anterior envió este turno a revisión. Verifica la información antes de
+              aprobar o rechazar el cierre.
             </p>
+
+            <div style={{ marginBottom: "var(--spacing-6)" }}>
+              <h4 style={{ marginBottom: "var(--spacing-3)" }}>Tareas asignadas</h4>
+              {tareasRevision.length === 0 ? (
+                <div className="empty-state">No hay tareas registradas para este turno.</div>
+              ) : (
+                <RegistrosTabla
+                  columnas={[
+                    { key: "objetivo", label: "Objetivo" },
+                    { key: "detalle", label: "Detalle" },
+                    {
+                      key: "realizada",
+                      label: "Realizada",
+                      render: (f) => (
+                        <span style={{ color: f.realizada ? "#10b981" : "#ef4444", fontWeight: 600 }}>
+                          {f.realizada ? "Si" : "No"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "revisada",
+                      label: "Revisada",
+                      render: (f) => (
+                        <span style={{ color: f.revisada ? "#10b981" : "#6b7280", fontWeight: 600 }}>
+                          {f.revisada ? "Si" : "No"}
+                        </span>
+                      ),
+                    },
+                  ]}
+                  filas={tareasRevision}
+                  vacio="Sin tareas."
+                />
+              )}
+            </div>
+
+            <div style={{ marginBottom: "var(--spacing-6)" }}>
+              <h4 style={{ marginBottom: "var(--spacing-3)" }}>Lecturas de mangueras</h4>
+              {lecturasRevision.length === 0 ? (
+                <div className="empty-state">No hay lecturas registradas para este turno.</div>
+              ) : (
+                <RegistrosTabla
+                  columnas={[
+                    { key: "manguera_id", label: "Manguera" },
+                    {
+                      key: "cantidad",
+                      label: "Galones",
+                      render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
+                    },
+                    { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
+                  ]}
+                  filas={lecturasRevision}
+                  vacio="Sin lecturas."
+                />
+              )}
+            </div>
+
+            <div style={{ marginBottom: "var(--spacing-6)" }}>
+              <h4 style={{ marginBottom: "var(--spacing-3)" }}>Inventario — Isla {turnoEnRevision.isla}</h4>
+              {inventarioRevision.length === 0 ? (
+                <div className="empty-state">No hay inventario registrado para esta isla.</div>
+              ) : (
+                <RegistrosTabla
+                  columnas={[
+                    { key: "bodega_nombre", label: "Bodega" },
+                    { key: "codigo", label: "Producto" },
+                    { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
+                  ]}
+                  filas={inventarioRevision}
+                  vacio="Sin inventario."
+                />
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: "var(--spacing-3)", justifyContent: "flex-end" }}>
+              <button
+                className="btn btn--danger"
+                onClick={() => manejarRevisar(false)}
+                disabled={cargandoAccion}
+              >
+                {cargandoAccion ? "Procesando..." : "Rechazar"}
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={() => manejarRevisar(true)}
+                disabled={cargandoAccion}
+              >
+                {cargandoAccion ? "Procesando..." : "Aprobar cierre"}
+              </button>
+            </div>
           </div>
+        )}
+
+        {!turnoAbierto && turnoSeleccionado && turnoSeleccionado.estado !== "abierto" && (
+          <>
+            {turnoSeleccionado.estado === "en_espera" && (
+              <div className="card" style={{ textAlign: "center", padding: "var(--spacing-8)" }}>
+                <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>
+                  Este turno está en espera. Solicita abrirlo para comenzar a operar.
+                </p>
+              </div>
+            )}
+            {turnoSeleccionado.estado === "creado" && (
+              <div className="card" style={{ textAlign: "center", padding: "var(--spacing-8)" }}>
+                <p style={{ color: "var(--text-muted)", fontSize: "1.1rem" }}>
+                  Este turno aún no está disponible. Espera a que llegue su hora de inicio.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </main>
 

@@ -2,6 +2,7 @@ const ESTADO_LABELS = {
   creado: "Creado",
   en_espera: "En espera",
   abierto: "Abierto",
+  en_revision: "En revisión",
   cerrado: "Cerrado",
 };
 
@@ -9,6 +10,7 @@ const ESTADO_COLORS = {
   creado: "#f59e0b",
   en_espera: "#3b82f6",
   abierto: "#10b981",
+  en_revision: "#f97316",
   cerrado: "#6b7280",
 };
 
@@ -16,6 +18,7 @@ export default function TurnoStatus({ turno, turnosDisponibles, onAbrir, onCerra
   if (turno) {
     const esAbierto = turno.estado === "abierto";
     const esEnEspera = turno.estado === "en_espera";
+    const esEnRevision = turno.estado === "en_revision";
 
     return (
       <div className="pump-display">

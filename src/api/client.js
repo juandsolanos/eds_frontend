@@ -121,6 +121,9 @@ export const api = {
     request(`/api/turnos/${encodeURIComponent(turnoId)}/anterior`, { token, ...opts }),
   lecturasCierre: (token, turnoId, opts) =>
     request(`/api/turnos/${encodeURIComponent(turnoId)}/lecturas-cierre`, { token, ...opts }),
+  turnoEnRevision: (token, opts) => request("/api/turnos/en_revision", { token, ...opts }),
+  revisarTurno: (token, turnoId, aprobado) =>
+    request(`/api/turnos/${turnoId}/revisar`, { method: "POST", token, body: { aprobado } }),
 
   subirFotoLectura: (token, archivo) =>
     requestArchivo("/api/lecturas-mangueras/foto", { archivo, token }),
@@ -128,6 +131,8 @@ export const api = {
     request("/api/lecturas-mangueras/", { method: "POST", token, body: datos }),
   listarLecturas: (token, turnoId, opts) =>
     request(`/api/lecturas-mangueras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
+  listarLecturasPorTurno: (token, turnoId, opts) =>
+    request(`/api/lecturas-mangueras/turno/${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   crearVenta: (token, datos) =>
     request("/api/productos-unidad-ventas/", { method: "POST", token, body: datos }),
@@ -182,6 +187,8 @@ export const api = {
 
   // Tareas del turno (operario)
   tareasActivas: (token, opts) => request("/api/registros-tareas/activo", { token, ...opts }),
+  tareasPorTurno: (token, turnoId, opts) =>
+    request(`/api/registros-tareas/turno/${encodeURIComponent(turnoId)}`, { token, ...opts }),
   marcarTareaRealizada: (token, tareaId, realizada) =>
     request(`/api/registros-tareas/${tareaId}/realizacion`, { method: "PATCH", token, body: { realizada } }),
 
