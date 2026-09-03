@@ -443,15 +443,15 @@ export default function OperarioPanel() {
 
   // Los tipos de transacción y su signo vienen del backend ("TiposTransaccion").
   // La pestaña "Crédito" muestra únicamente las de tipo "credito"; la pestaña
-  // "Transacciones" muestra los gastos (signo = -1).
-  const tiposGasto = tiposTransaccion.filter((t) => t.signo === -1);
+  // "Transacciones" muestra las demás transacciones
+  const tiposNoCredito = tiposTransaccion.filter((t) => t.tipo != "credito");
   const tiposCredito = tiposTransaccion.filter((t) => t.tipo === "credito");
 
   const transaccionesCredito = transacciones.filter((t) =>
     tiposCredito.some((tc) => tc.id === t.tipo)
   );
-  const transaccionesGasto = transacciones.filter((t) =>
-    tiposGasto.some((tg) => tg.id === t.tipo)
+  const transaccionesNoCredito = transacciones.filter((t) =>
+    tiposNoCredito.some((tg) => tg.id === t.tipo)
   );
 
   // Filtros para la venta en otras islas: combustible disponible según las
@@ -658,7 +658,7 @@ export default function OperarioPanel() {
             {tab === "transacciones" && (
               <>
                 <FormularioTransaccion
-                  tipos={tiposGasto}
+                  tipos={tiposNoCredito}
                   clientes={clientes}
                   mostrarCliente={false}
                   onRegistrar={manejarRegistrarTransaccion}
@@ -671,7 +671,7 @@ export default function OperarioPanel() {
                       { key: "tipo", label: "Tipo" },
                       { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
                     ]}
-                    filas={transaccionesGasto}
+                    filas={transaccionesNoCredito}
                     vacio="Sin transacciones registradas en este turno."
                   />
                 </div>
