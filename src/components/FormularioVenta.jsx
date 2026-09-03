@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { formatMoney } from "../utils/format";
+import InputMiles from "./InputMiles";
 
 export default function FormularioVenta({ productos, onRegistrar, cargando }) {
   const [tipoFiltro, setTipoFiltro] = useState("");
@@ -66,12 +67,11 @@ export default function FormularioVenta({ productos, onRegistrar, cargando }) {
 
         <div className="field">
           <label htmlFor="cantidad">Cantidad</label>
-          <input
+          <InputMiles
             id="cantidad"
-            type="number"
             min="1"
             value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
+            onChange={setCantidad}
             required
           />
         </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import InputMiles from "./InputMiles";
 
 export default function FormularioTransaccion({ tipos, clientes, mostrarCliente = true, onRegistrar, cargando }) {
   const [tipo, setTipo] = useState(tipos.length > 0 ? tipos[0].id : "");
@@ -35,13 +36,12 @@ export default function FormularioTransaccion({ tipos, clientes, mostrarCliente 
         </div>
         <div className="field">
           <label htmlFor="valor">Valor</label>
-          <input
+          <InputMiles
             id="valor"
-            type="number"
             step="0.01"
             min="0"
             value={valor}
-            onChange={(e) => setValor(e.target.value)}
+            onChange={setValor}
             required
           />
         </div>

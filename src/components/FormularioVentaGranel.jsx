@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatMoney } from "../utils/format";
+import InputMiles from "./InputMiles";
 
 export default function FormularioVentaGranel({ productos, onRegistrar, cargando }) {
   const [codigo, setCodigo] = useState("");
@@ -37,13 +38,12 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
         </div>
         <div className="field">
           <label htmlFor="cantidad_granel">Galones</label>
-          <input
+          <InputMiles
             id="cantidad_granel"
-            type="number"
             step="0.01"
             min="0.01"
             value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
+            onChange={setCantidad}
             required
           />
         </div>
