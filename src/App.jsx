@@ -8,6 +8,7 @@ import Catalogos from "./pages/admin/Catalogos";
 import Registros from "./pages/admin/Registros";
 import HistorialPrecios from "./pages/admin/HistorialPrecios";
 import Turnos from "./pages/admin/Turnos";
+import Alertas from "./pages/admin/Alertas";
 
 export default function App() {
   const { token, usuario } = useAuth();
@@ -28,6 +29,7 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="turnos" element={<Turnos />} />
+            <Route path="alertas" element={<Alertas />} />
             <Route path="registros" element={<Registros />} />
             {esSuperadmin && <Route path="catalogos" element={<Catalogos />} />}
             <Route path="historial-precios" element={<HistorialPrecios />} />

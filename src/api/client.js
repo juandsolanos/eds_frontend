@@ -124,6 +124,12 @@ export const api = {
   turnoEnRevision: (token, opts) => request("/api/turnos/en_revision", { token, ...opts }),
   revisarTurno: (token, turnoId, aprobado) =>
     request(`/api/turnos/${turnoId}/revisar`, { method: "POST", token, body: { aprobado } }),
+  alertaInventario: (token, turnoId, datos) =>
+    request(`/api/turnos/${turnoId}/alerta-inventario`, {
+      method: "POST",
+      token,
+      body: datos,
+    }),
 
   subirFotoLectura: (token, archivo) =>
     requestArchivo("/api/lecturas-mangueras/foto", { archivo, token }),
@@ -201,6 +207,27 @@ export const api = {
     request(`/api/productos-unidad/${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ""}`, { token, ...opts }),
   listarClientes: (token, opts) => request("/api/clientes/", { token, ...opts }),
   listarIslas: (token, opts) => request("/api/islas/", { token, ...opts }),
+
+  // Alertas
+  listarAlertas: (token, opts) => request("/api/alertas/", { token, ...opts }),
+  crearAlerta: (token, datos, opts) =>
+    request("/api/alertas/", { method: "POST", token, body: datos, ...opts }),
+  atenderAlerta: (token, alertaId, estado, comentarios, opts) =>
+    request(`/api/alertas/${encodeURIComponent(alertaId)}/atender`, {
+      method: "PUT",
+      token,
+      body: { estado, comentarios },
+      ...opts,
+    }),
+  listarPermisosAlertas: (token, opts) =>
+    request("/api/alertas/permisos", { token, ...opts }),
+  guardarPermisoAlerta: (token, tipo, datos, opts) =>
+    request(`/api/alertas/permisos/${encodeURIComponent(tipo)}`, {
+      method: "PUT",
+      token,
+      body: datos,
+      ...opts,
+    }),
 };
 
 export { ApiError };

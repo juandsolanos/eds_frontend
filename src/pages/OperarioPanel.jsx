@@ -60,6 +60,16 @@ export default function OperarioPanel() {
   const [tareasRevision, setTareasRevision] = useState([]);
   const [lecturasRevision, setLecturasRevision] = useState([]);
   const [inventarioRevision, setInventarioRevision] = useState([]);
+  const [alertas, setAlertas] = useState([]);
+
+  // Estado del formulario para levantar alerta de inventario durante la revisión
+  const [mostrarFormAlerta, setMostrarFormAlerta] = useState(false);
+  const [alertaDescripcion, setAlertaDescripcion] = useState("");
+  const [productoDiferencia, setProductoDiferencia] = useState("");
+  const [cantFisica, setCantFisica] = useState("");
+  const [cantSistema, setCantSistema] = useState("");
+  const [diferencias, setDiferencias] = useState([]);
+  const [observacionDiferencia, setObservacionDiferencia] = useState("");
 
   const cargarTurnos = useCallback(async ({ signal } = {}) => {
     try {
@@ -133,6 +143,7 @@ export default function OperarioPanel() {
       }
     });
     cargarRevision({ signal });
+    api.listarAlertas(token, { signal }).then(setAlertas).catch(() => setAlertas([]));
     api.listarProductosGranel(token, { signal }).then(setProductosGranel).catch(() => setProductosGranel([]));
     api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => setProductos([]));
     api.listarClientes(token, { signal }).then(setClientes).catch(() => setClientes([]));
@@ -286,6 +297,66 @@ export default function OperarioPanel() {
     }
   }
 
+  function agregarDiferencia() {
+    if (!productoDiferencia) {
+      mostrarError({ detail: "Selecciona un producto." });
+      return;
+    }
+    const cantF = parseFloat(cantFisica);
+    const cantS = parseFloat(cantSistema);
+    if (Number.isNaN(cantF) && Number.isNaN(cantS)) {
+      mostrarError({ detail: "Indica al menos una de las cantidades (física o sistema)." });
+      return;
+    }
+    const fisica = Number.isNaN(cantF) ? cantS : cantF;
+    const sistema = Number.isNaN(cantS) ? cantF : cantS;
+    setDiferencias((prev) => [
+      ...prev.filter((d) => d.codigo !== productoDiferencia),
+      {
+        codigo: productoDiferencia,
+        cantidad_fisica: fisica,
+        cantidad_sistema: sistema,
+        diferencia: fisica - sistema,
+        observacion: observacionDiferencia.trim() || null,
+      },
+    ]);
+    setProductoDiferencia("");
+    setCantFisica("");
+    setCantSistema("");
+    setObservacionDiferencia("");
+  }
+
+  function quitarDiferencia(codigo) {
+    setDiferencias((prev) => prev.filter((d) => d.codigo !== codigo));
+  }
+
+  async function manejarLevantarAlerta() {
+    if (!alertaDescripcion.trim()) {
+      mostrarError({ detail: "Escribe una descripción de la diferencia." });
+      return;
+    }
+    if (diferencias.length === 0) {
+      mostrarError({ detail: "Agrega al menos un producto con diferencia." });
+      return;
+    }
+    setCargandoAccion(true);
+    try {
+      await api.alertaInventario(token, turnoEnRevision.id, {
+        descripcion: alertaDescripcion.trim(),
+        productos: diferencias,
+      });
+      mostrarExito("Alerta de inventario levantada.");
+      setMostrarFormAlerta(false);
+      setAlertaDescripcion("");
+      setDiferencias([]);
+      api.listarAlertas(token).then(setAlertas).catch(() => setAlertas([]));
+    } catch (err) {
+      mostrarError(err);
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
   async function manejarRegistrarLectura(datos) {
     setCargandoAccion(true);
     try {
@@ -419,6 +490,54 @@ export default function OperarioPanel() {
         {mensaje && (
           <div className={`alert alert--${mensaje.tipo === "error" ? "error" : "success"}`}>
             {mensaje.texto}
+          </div>
+        )}
+
+        {alertas.length > 0 && (
+          <div className="card" style={{ marginBottom: "var(--spacing-4)" }}>
+            <h3 className="card__title" style={{ marginBottom: "var(--spacing-3)" }}>
+              Alertas
+            </h3>
+            <table className="tabla">
+              <thead>
+                <tr>
+                  <th>Estado</th>
+                  <th>Tipo</th>
+                  <th>Descripción</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alertas.map((a) => (
+                  <tr key={a.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>{a.estado}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>{a.tipo}</td>
+                    <td>
+                      {a.descripcion}
+                      {a.tipo === "inventario_diferencia" && (
+                        <div style={{ marginTop: "var(--spacing-2)", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                          {(() => {
+                            const detalle = a.entidades?.find((e) => e.tabla === "InventarioDiferencia");
+                            const productos = detalle?.productos || [];
+                            return productos.length > 0
+                              ? productos
+                                  .map(
+                                    (p) =>
+                                      `${p.codigo}: ${formatCant(p.cantidad_fisica)} física vs ${formatCant(
+                                        p.cantidad_sistema
+                                      )} sistema (dif. ${formatCant(p.diferencia)}${p.observacion ? ` — ${p.observacion}` : ""})`
+                                  )
+                                  .join(" · ")
+                              : "Diferencia de inventario";
+                          })()}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>{new Date(a.tiempo).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
@@ -745,6 +864,146 @@ export default function OperarioPanel() {
                   filas={inventarioRevision}
                   vacio="Sin inventario."
                 />
+              )}
+            </div>
+
+            <div style={{ marginBottom: "var(--spacing-6)" }}>
+              <h4 style={{ marginBottom: "var(--spacing-3)" }}>Alerta de diferencia de inventario</h4>
+              <p style={{ color: "var(--text-muted)", marginBottom: "var(--spacing-4)" }}>
+                Si existen diferencias entre las existencias físicas y las del sistema en este turno,
+                levanta una alerta para que quede registrada.
+              </p>
+
+              {!mostrarFormAlerta ? (
+                <button
+                  className="btn btn--primary"
+                  onClick={() => setMostrarFormAlerta(true)}
+                  disabled={cargandoAccion}
+                >
+                  Levantar alerta de inventario
+                </button>
+              ) : (
+                <div className="card" style={{ borderColor: "#f59e0b" }}>
+                  <div className="field">
+                    <label htmlFor="alerta_producto">Producto</label>
+                    <div style={{ display: "flex", gap: "var(--spacing-2)", flexWrap: "wrap" }}>
+                      <select
+                        id="alerta_producto"
+                        value={productoDiferencia}
+                        onChange={(e) => {
+                          setProductoDiferencia(e.target.value);
+                          const inv = inventarioRevision.find(
+                            (i) => String(i.codigo) === e.target.value
+                          );
+                          setCantSistema(inv ? String(inv.cantidad) : "");
+                          setCantFisica("");
+                          setObservacionDiferencia("");
+                        }}
+                        style={{ minWidth: 220 }}
+                      >
+                        <option value="">Selecciona un producto</option>
+                        {productos
+                          .filter((p) => inventarioRevision.some((i) => i.codigo === p.codigo))
+                          .map((p) => (
+                            <option key={p.codigo} value={p.codigo}>
+                              {p.nombre} ({p.codigo})
+                            </option>
+                          ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Cant. física"
+                        value={cantFisica}
+                        onChange={(e) => setCantFisica(e.target.value)}
+                        style={{ width: 120 }}
+                      />
+                      <input
+                        type="number"
+                        placeholder="Cant. sistema"
+                        value={cantSistema}
+                        onChange={(e) => setCantSistema(e.target.value)}
+                        style={{ width: 120 }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Observación (opcional)"
+                        value={observacionDiferencia}
+                        onChange={(e) => setObservacionDiferencia(e.target.value)}
+                        style={{ minWidth: 160, flex: 1 }}
+                      />
+                      <button className="btn" type="button" onClick={agregarDiferencia}>
+                        Agregar
+                      </button>
+                    </div>
+                  </div>
+
+                  {diferencias.length > 0 && (
+                    <div style={{ marginTop: "var(--spacing-4)" }}>
+                      <RegistrosTabla
+                        columnas={[
+                          { key: "codigo", label: "Producto" },
+                          { key: "cantidad_fisica", label: "Física", render: (f) => formatCant(f.cantidad_fisica) },
+                          { key: "cantidad_sistema", label: "Sistema", render: (f) => formatCant(f.cantidad_sistema) },
+                          {
+                            key: "diferencia",
+                            label: "Diferencia",
+                            render: (f) => (
+                              <span style={{ color: f.diferencia !== 0 ? "#ef4444" : "#10b981", fontWeight: 600 }}>
+                                {formatCant(f.diferencia)}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: "quitar",
+                            label: "",
+                            render: (f) => (
+                              <button className="btn btn--danger" type="button" onClick={() => quitarDiferencia(f.codigo)}>
+                                Quitar
+                              </button>
+                            ),
+                          },
+                        ]}
+                        filas={diferencias}
+                        vacio="Sin diferencias agregadas."
+                      />
+                    </div>
+                  )}
+
+                  <div className="field" style={{ marginTop: "var(--spacing-4)" }}>
+                    <label htmlFor="alerta_descripcion">Descripción de la diferencia</label>
+                    <textarea
+                      id="alerta_descripcion"
+                      value={alertaDescripcion}
+                      onChange={(e) => setAlertaDescripcion(e.target.value)}
+                      rows={3}
+                      placeholder="Describe la diferencia detectada en el inventario..."
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", gap: "var(--spacing-3)", justifyContent: "flex-end" }}>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        setMostrarFormAlerta(false);
+                        setAlertaDescripcion("");
+                        setDiferencias([]);
+                        setProductoDiferencia("");
+                        setCantFisica("");
+                        setCantSistema("");
+                        setObservacionDiferencia("");
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      className="btn btn--primary"
+                      onClick={manejarLevantarAlerta}
+                      disabled={cargandoAccion}
+                    >
+                      {cargandoAccion ? "Guardando..." : "Levantar alerta"}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
