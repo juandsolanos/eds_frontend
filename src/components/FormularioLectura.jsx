@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import InputMiles, { parseMiles } from "./InputMiles";
+import CamaraCaptura from "./CamaraCaptura";
 
 const nfMiles = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
 
@@ -15,6 +16,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
 
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState(null);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
 
   const cancelarRef = useRef(null);
 
@@ -34,6 +36,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
     setLecturaFinal("");
     setFoto(null);
     setErrorFoto(null);
+    setCamaraAbierta(false);
   }
 
   useEffect(() => {
@@ -54,6 +57,11 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
   async function manejarSubmit(evento) {
     evento.preventDefault();
     setErrorFoto(null);
+
+    if (!foto) {
+      setErrorFoto("Debes tomar una foto del medidor con la cámara como evidencia.");
+      return;
+    }
 
     setSubiendoFoto(true);
     let fotoUrl;
@@ -169,14 +177,28 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
 
                 <div className="field field--full">
                   <label htmlFor="foto">Foto del medidor (evidencia)</label>
-                  <input
-                    id="foto"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    capture="environment"
-                    onChange={(e) => setFoto(e.target.files[0] ?? null)}
-                    required
-                  />
+                  {foto ? (
+                    <div className="foto-evidencia">
+                      <img src={URL.createObjectURL(foto)} className="foto-preview" alt="Evidencia capturada" />
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setCamaraAbierta(true)}
+                        disabled={subiendoFoto}
+                      >
+                        Retomar foto
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn--outline"
+                      onClick={() => setCamaraAbierta(true)}
+                      disabled={subiendoFoto}
+                    >
+                      Abrir cámara para tomar foto
+                    </button>
+                  )}
                 </div>
 
                 {errorFoto && (
@@ -203,6 +225,12 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
           </div>
         </div>
       )}
+
+      <CamaraCaptura
+        abierta={camaraAbierta}
+        onCapturar={setFoto}
+        onCerrar={() => setCamaraAbierta(false)}
+      />
     </div>
   );
 }

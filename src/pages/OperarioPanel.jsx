@@ -638,6 +638,18 @@ export default function OperarioPanel() {
                         render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
                       },
                       { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
+                      {
+                        key: "foto_url",
+                        label: "Evidencia",
+                        render: (f) =>
+                          f.foto_url ? (
+                            <a href={f.foto_url} target="_blank" rel="noreferrer">
+                              <img src={f.foto_url} className="foto-thumb" alt="Evidencia" />
+                            </a>
+                          ) : (
+                            "—"
+                          ),
+                      },
                     ]}
                     filas={lecturas}
                     vacio="Sin lecturas registradas en este turno."
