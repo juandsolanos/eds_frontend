@@ -72,8 +72,25 @@ export default function Turnos() {
     return () => ctrl.abort();
   }, [token, cargarTurnos]);
 
+  function textoError(err) {
+    const detalle = err?.detail ?? err?.message ?? err;
+    if (typeof detalle === "string") return detalle;
+    if (Array.isArray(detalle)) return detalle.map((d) => textoError(d)).join(". ");
+    if (detalle && typeof detalle === "object") {
+      if (typeof detalle.detail === "string") return detalle.detail;
+      const msg = detalle.msg || detalle.message;
+      if (typeof msg === "string") return msg;
+      try {
+        return JSON.stringify(detalle);
+      } catch {
+        return "Ocurrió un error inesperado.";
+      }
+    }
+    return "Ocurrió un error inesperado.";
+  }
+
   function mostrarError(err) {
-    setMensaje({ tipo: "error", texto: err.detail || "Ocurrió un error inesperado." });
+    setMensaje({ tipo: "error", texto: textoError(err) });
   }
 
   function mostrarExito(texto) {
@@ -91,12 +108,30 @@ export default function Turnos() {
   // --- Crear turno ---
   async function handleCrearTurno(e) {
     e.preventDefault();
+    if (isla === "" || String(isla) === "0") {
+      mostrarError({ detail: "Debes seleccionar una isla." });
+      return;
+    }
+    if (!inicioIdeal || !finalIdeal) {
+      mostrarError({ detail: "Debes indicar el inicio y el final ideales del turno." });
+      return;
+    }
+    const inicio = new Date(inicioIdeal);
+    const fin = new Date(finalIdeal);
+    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
+      mostrarError({ detail: "Las fechas indicadas no son válidas." });
+      return;
+    }
+    if (inicio >= fin) {
+      mostrarError({ detail: "El inicio ideal debe ser anterior al final ideal." });
+      return;
+    }
     setCargando(true);
     try {
       const datos = {
         isla: Number(isla),
-        inicio_ideal: new Date(inicioIdeal).toISOString(),
-        final_ideal: new Date(finalIdeal).toISOString(),
+        inicio_ideal: inicio.toISOString(),
+        final_ideal: fin.toISOString(),
         responsable: responsable || null,
       };
       await api.crearTurno(token, datos);
@@ -120,12 +155,22 @@ export default function Turnos() {
 
   async function handleEditarCampos(e) {
     e.preventDefault();
+    const inicio = new Date(editInicio);
+    const fin = new Date(editFinal);
+    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
+      mostrarError({ detail: "Las fechas indicadas no son válidas." });
+      return;
+    }
+    if (inicio >= fin) {
+      mostrarError({ detail: "El inicio ideal debe ser anterior al final ideal." });
+      return;
+    }
     setCargando(true);
     try {
       const datos = {
         isla: Number(editIsla),
-        inicio_ideal: new Date(editInicio).toISOString(),
-        final_ideal: new Date(editFinal).toISOString(),
+        inicio_ideal: inicio.toISOString(),
+        final_ideal: fin.toISOString(),
       };
       await api.actualizarTurno(token, editando.id, datos);
       mostrarExito("Turno actualizado.");
