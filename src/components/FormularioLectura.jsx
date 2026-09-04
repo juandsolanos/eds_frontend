@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
-import InputMiles from "./InputMiles";
+import InputMiles, { parseMiles } from "./InputMiles";
 
 const nfMiles = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
 

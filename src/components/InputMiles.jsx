@@ -7,7 +7,7 @@ function formatMiles(valor) {
   return nfMiles.format(num);
 }
 
-function parseMiles(texto) {
+export function parseMiles(texto) {
   const limpio = texto.replace(/\./g, "").replace(",", ".");
   return limpio;
 }
