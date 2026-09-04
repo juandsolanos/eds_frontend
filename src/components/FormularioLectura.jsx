@@ -17,6 +17,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState(null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const cancelarRef = useRef(null);
 
@@ -27,6 +28,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
     setLecturaInicial(String(manguera.ultima_lectura || 0));
     setLecturaFinal("");
     setFoto(null);
+    setPreviewUrl(null);
     setErrorFoto(null);
   }
 
@@ -35,6 +37,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
     setLecturaInicial("");
     setLecturaFinal("");
     setFoto(null);
+    setPreviewUrl(null);
     setErrorFoto(null);
     setCamaraAbierta(false);
   }
@@ -177,9 +180,9 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
 
                 <div className="field field--full">
                   <label htmlFor="foto">Foto del medidor (evidencia)</label>
-                  {foto ? (
+                  {foto && previewUrl ? (
                     <div className="foto-evidencia">
-                      <img src={URL.createObjectURL(foto)} className="foto-preview" alt="Evidencia capturada" />
+                      <img src={previewUrl} className="foto-preview" alt="Evidencia capturada" />
                       <button
                         type="button"
                         className="btn btn--ghost btn--sm"
@@ -228,7 +231,11 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
 
       <CamaraCaptura
         abierta={camaraAbierta}
-        onCapturar={setFoto}
+        onCapturar={(archivo) => {
+          setFoto(archivo);
+          setPreviewUrl(URL.createObjectURL(archivo));
+          setErrorFoto(null);
+        }}
         onCerrar={() => setCamaraAbierta(false)}
       />
     </div>

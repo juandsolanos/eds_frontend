@@ -545,25 +545,29 @@
   flex-direction: column;
   z-index: 1100;
   padding: var(--spacing-4);
+  overflow-y: auto;
 }
 .camara-modal {
   width: 100%;
-  max-width: 460px;
+  max-width: 400px;
+  max-height: 92vh;
+  overflow-y: auto;
   background: #000;
   border-radius: var(--radius);
-  padding: var(--spacing-4);
+  padding: var(--spacing-3);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
 }
 .camara-vista {
   width: 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 4 / 3;
+  max-height: 55vh;
+  min-height: 0;
   background: #000;
   border-radius: var(--radius);
   overflow: hidden;
   position: relative;
-  cursor: pointer;
 }
 .camara-video {
   width: 100%;
@@ -582,7 +586,7 @@
   flex-direction: column;
   gap: var(--spacing-3);
   align-items: stretch;
-  padding: var(--spacing-6) 0;
+  padding: var(--spacing-4) 0;
 }
 .camara-controles {
   display: flex;
@@ -592,11 +596,17 @@
 .camara-controles-centro {
   display: flex;
   justify-content: center;
-  padding: var(--spacing-2) 0;
+  padding: var(--spacing-1) 0;
+}
+.camara-activa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  align-items: stretch;
 }
 .camara-disparo {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   border: 4px solid #fff;
   background: rgba(255, 255, 255, 0.25);

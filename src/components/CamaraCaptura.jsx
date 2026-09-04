@@ -13,36 +13,46 @@ function mensajeError(error) {
   if (error?.name === "AbortError") {
     return "Se canceló la solicitud de cámara. Inténtalo de nuevo.";
   }
-  if (/https?:/.test(window.location.protocol) === false) {
+  if (/^https?:/.test(window.location.protocol) === false) {
     return "La cámara solo funciona sobre una conexión segura (HTTPS).";
   }
   return `No se pudo abrir la cámara: ${error?.message || "error desconocido"}`;
 }
 
-function escalarYCentrar(imagen, ancho, alto) {
-  const aCanvas = document.createElement("canvas");
-  aCanvas.width = imagen.width;
-  aCanvas.height = imagen.height;
-  aCanvas.getContext("2d").drawImage(imagen, 0, 0);
-  const ctx = aCanvas.getContext("2d");
-  const imageData = ctx.getImageData(0, 0, aCanvas.width, aCanvas.height);
-  const img = new Image();
-  img.width = imageData.width;
+function canvasABlob(canvas, cb) {
+  if (canvas.toBlob) {
+    canvas.toBlob(cb, "image/jpeg", 0.92);
+  } else {
+    try {
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      const bstr = atob(dataUrl.split(",")[1]);
+      const mime = dataUrl.substring(5, dataUrl.indexOf(";base64,"));
+      const u8arr = new Uint8Array(bstr.length);
+      for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+      cb(new Blob([u8arr], { type: mime }));
+    } catch {
+      cb(null);
+    }
+  }
 }
 
 export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const [estado, setEstado] = useState("idle");
-  const [foto, setFoto] = useState(null);
-  const [error, setError] = useState(null);
   const [iniciando, setIniciando] = useState(false);
-  const canvasRef = useRef(null);
+  const [error, setError] = useState(null);
+  const [foto, setFoto] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const detenerStream = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   }, []);
 
@@ -51,17 +61,27 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
       detenerStream();
       setEstado("idle");
       setFoto(null);
+      setPreviewUrl(null);
       setError(null);
       setIniciando(false);
     }
   }, [abierta, detenerStream]);
 
+  useEffect(() => () => detenerStream(), [detenerStream]);
+
   useEffect(() => {
-    return () => detenerStream();
-  }, [detenerStream]);
+    if (estado === "activa" && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      if (videoRef.current.play) {
+        videoRef.current.play().catch(() => {});
+      }
+    }
+  }, [estado]);
 
   async function abrirCamara() {
     setError(null);
+    setFoto(null);
+    setPreviewUrl(null);
     setIniciando(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -70,9 +90,6 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
       });
       streamRef.current = stream;
       setEstado("activa");
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
     } catch (err) {
       setError(mensajeError(err));
       setEstado("idle");
@@ -91,24 +108,20 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
     canvas.width = ancho;
     canvas.height = alto;
     canvas.getContext("2d").drawImage(video, 0, 0, ancho, alto);
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          setError("No se pudo capturar la foto. Inténtalo de nuevo.");
-          return;
-        }
-        const archivo = new File([blob], "foto-evidencia.jpg", { type: "image/jpeg" });
-        setFoto(archivo);
-        setEstado("capturada");
-        detenerStream();
-      },
-      "image/jpeg",
-      0.92
-    );
+    canvasABlob(canvas, (blob) => {
+      if (!blob) {
+        setError("No se pudo capturar la foto. Inténtalo de nuevo.");
+        return;
+      }
+      const archivo = new File([blob], "foto-evidencia.jpg", { type: "image/jpeg" });
+      setFoto(archivo);
+      setPreviewUrl(URL.createObjectURL(archivo));
+      setEstado("capturada");
+      detenerStream();
+    });
   }
 
   function retomar() {
-    setFoto(null);
     abrirCamara();
   }
 
@@ -127,7 +140,14 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
         {error && (
           <div className="camara-error">
             <p>{error}</p>
-            <button type="button" className="btn btn--ghost" onClick={() => { setError(null); abrirCamara(); }}>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => {
+                setError(null);
+                abrirCamara();
+              }}
+            >
               Reintentar
             </button>
             <button type="button" className="btn btn--ghost" onClick={onCerrar}>
@@ -149,7 +169,7 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
 
         {!error && estado !== "idle" && (
           <>
-            <div className="camara-vista" onClick={estado === "activa" ? tomarFoto : undefined}>
+            <div className="camara-vista">
               <video
                 ref={videoRef}
                 className="camara-video"
@@ -158,30 +178,27 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
                 muted
                 style={{ display: estado === "activa" ? "block" : "none" }}
               />
-              {estado === "capturada" && foto && (
-                <img src={URL.createObjectURL(foto)} className="camara-foto" alt="Evidencia capturada" />
+              {estado === "capturada" && previewUrl && (
+                <img src={previewUrl} className="camara-foto" alt="Evidencia capturada" />
               )}
             </div>
 
-            {estado === "activa" && (
-              <div className="camara-controles-centro">
-                <button type="button" className="camara-disparo" onClick={tomarFoto} aria-label="Tomar foto" />
+            {estado === "activa" ? (
+              <div className="camara-activa">
+                <div className="camara-controles-centro">
+                  <button type="button" className="camara-disparo" onClick={tomarFoto} aria-label="Tomar foto" />
+                </div>
+                <button type="button" className="btn btn--ghost" onClick={onCerrar}>
+                  Cancelar
+                </button>
               </div>
-            )}
-
-            {estado === "capturada" ? (
+            ) : (
               <div className="camara-controles">
                 <button type="button" className="btn btn--ghost" onClick={retomar}>
                   Retomar
                 </button>
                 <button type="button" className="btn btn--primary" onClick={usarFoto}>
                   Usar esta foto
-                </button>
-              </div>
-            ) : (
-              <div className="camara-controles">
-                <button type="button" className="btn btn--ghost" onClick={onCerrar}>
-                  Cancelar
                 </button>
               </div>
             )}
