@@ -197,6 +197,8 @@ export const api = {
     request(`/api/registros-tareas/turno/${encodeURIComponent(turnoId)}`, { token, ...opts }),
   marcarTareaRealizada: (token, tareaId, realizada) =>
     request(`/api/registros-tareas/${tareaId}/realizacion`, { method: "PATCH", token, body: { realizada } }),
+  marcarTareaRevisada: (token, tareaId, turnoId, revisada) =>
+    request(`/api/registros-tareas/${tareaId}/revision`, { method: "PATCH", token, body: { turno: turnoId, revisada } }),
 
   // Alias de solo lectura usados también desde el panel de operario
   listarMangueras: (token, opts) => request("/api/mangueras/", { token, ...opts }),

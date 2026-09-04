@@ -14,7 +14,7 @@ const ESTADO_COLORS = {
   cerrado: "#6b7280",
 };
 
-export default function TurnoStatus({ turno, turnosDisponibles, onAbrir, onCerrar, onSolicitarAbrir, cargando }) {
+export default function TurnoStatus({ turno, turnosDisponibles, onAbrir, onCerrar, onSolicitarAbrir, cargando, bloquearAbrir = false, mensajeBloqueo = "" }) {
   if (turno) {
     const esAbierto = turno.estado === "abierto";
     const esEnEspera = turno.estado === "en_espera";
@@ -44,9 +44,21 @@ export default function TurnoStatus({ turno, turnosDisponibles, onAbrir, onCerra
           </button>
         )}
         {esEnEspera && (
-          <button className="btn btn--primary" onClick={onSolicitarAbrir} disabled={cargando}>
-            {cargando ? "Abriendo..." : "Abrir turno"}
-          </button>
+          <>
+            <button
+              className="btn btn--primary"
+              onClick={onSolicitarAbrir}
+              disabled={cargando || bloquearAbrir}
+              title={bloquearAbrir ? mensajeBloqueo : undefined}
+            >
+              {cargando ? "Abriendo..." : "Abrir turno"}
+            </button>
+            {bloquearAbrir && (
+              <div style={{ fontSize: "0.8rem", color: "#f59e0b", maxWidth: 320, textAlign: "right" }}>
+                {mensajeBloqueo}
+              </div>
+            )}
+          </>
         )}
       </div>
     );

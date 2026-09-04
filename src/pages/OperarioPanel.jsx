@@ -456,6 +456,22 @@ export default function OperarioPanel() {
     }
   }
 
+  async function manejarMarcarTareaRevisada(tareaId, revisada) {
+    if (!turnoEnRevision) return;
+    setCargandoAccion(true);
+    try {
+      await api.marcarTareaRevisada(token, tareaId, turnoEnRevision.id, revisada);
+      mostrarExito(revisada ? "Tarea marcada como revisada." : "Tarea marcada como pendiente de revisión.");
+      setTareasRevision((prev) => prev.map((t) => (t.tarea === tareaId ? { ...t, revisada } : t)));
+      return true;
+    } catch (err) {
+      mostrarError(err);
+      return false;
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
   const turnoAbierto = turnoSeleccionado?.estado === "abierto";
 
   // Los tipos de transacción y su signo vienen del backend ("TiposTransaccion").
@@ -586,6 +602,8 @@ export default function OperarioPanel() {
           onCerrar={() => setConfirmarCerrarTurno(true)}
           onSolicitarAbrir={manejarSolicitarAbrir}
           cargando={cargandoAccion}
+          bloquearAbrir={Boolean(turnoEnRevision)}
+          mensajeBloqueo="Debes revisar el turno anterior (inventario, tareas y lecturas) y aprobar o rechazar su cierre antes de abrir este turno."
         />
 
         {turnoAbierto && (
@@ -817,32 +835,42 @@ export default function OperarioPanel() {
               {tareasRevision.length === 0 ? (
                 <div className="empty-state">No hay tareas registradas para este turno.</div>
               ) : (
-                <RegistrosTabla
-                  columnas={[
-                    { key: "objetivo", label: "Objetivo" },
-                    { key: "detalle", label: "Detalle" },
-                    {
-                      key: "realizada",
-                      label: "Realizada",
-                      render: (f) => (
-                        <span style={{ color: f.realizada ? "#10b981" : "#ef4444", fontWeight: 600 }}>
-                          {f.realizada ? "Si" : "No"}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "revisada",
-                      label: "Revisada",
-                      render: (f) => (
-                        <span style={{ color: f.revisada ? "#10b981" : "#6b7280", fontWeight: 600 }}>
-                          {f.revisada ? "Si" : "No"}
-                        </span>
-                      ),
-                    },
-                  ]}
-                  filas={tareasRevision}
-                  vacio="Sin tareas."
-                />
+                <>
+                  <p style={{ color: "var(--text-muted)", marginBottom: "var(--spacing-4)" }}>
+                    Marca como revisadas las tareas que compruebas que sí se hicieron en el turno
+                    anterior.
+                  </p>
+                  <RegistrosTabla
+                    columnas={[
+                      { key: "objetivo", label: "Objetivo" },
+                      { key: "detalle", label: "Detalle" },
+                      {
+                        key: "revisada",
+                        label: "Revisada",
+                        render: (f) => (
+                          <span style={{ color: f.revisada ? "#10b981" : "#6b7280", fontWeight: 600 }}>
+                            {f.revisada ? "Vista" : "Sin revisar"}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "_acciones",
+                        label: "",
+                        render: (f) => (
+                          <button
+                            className={`btn btn--sm ${f.revisada ? "btn--ghost" : "btn--primary"}`}
+                            disabled={cargandoAccion}
+                            onClick={() => manejarMarcarTareaRevisada(f.tarea, !f.revisada)}
+                          >
+                            {f.revisada ? "Desmarcar" : "Marcar como revisada"}
+                          </button>
+                        ),
+                      },
+                    ]}
+                    filas={tareasRevision}
+                    vacio="Sin tareas."
+                  />
+                </>
               )}
             </div>
 
