@@ -237,8 +237,25 @@ export default function OperarioPanel() {
     return () => ctrl.abort();
   }, [turnoEnRevision, token]);
 
+  function textoError(err) {
+    const detalle = err?.detail ?? err?.message ?? err;
+    if (typeof detalle === "string") return detalle;
+    if (Array.isArray(detalle)) return detalle.map((d) => textoError(d)).join(". ");
+    if (detalle && typeof detalle === "object") {
+      if (typeof detalle.detail === "string") return detalle.detail;
+      const msg = detalle.msg || detalle.message;
+      if (typeof msg === "string") return msg;
+      try {
+        return JSON.stringify(detalle);
+      } catch {
+        return "Ocurrió un error inesperado.";
+      }
+    }
+    return "Ocurrió un error inesperado.";
+  }
+
   function mostrarError(err) {
-    setMensaje({ tipo: "error", texto: err.detail || "Ocurrió un error inesperado." });
+    setMensaje({ tipo: "error", texto: textoError(err) });
   }
 
   function mostrarExito(texto) {
@@ -902,13 +919,16 @@ export default function OperarioPanel() {
                         style={{ minWidth: 220 }}
                       >
                         <option value="">Selecciona un producto</option>
-                        {productos
-                          .filter((p) => inventarioRevision.some((i) => i.codigo === p.codigo))
-                          .map((p) => (
+                        {productos.map((p) => {
+                          const inv = inventarioRevision.find(
+                            (i) => String(i.codigo) === String(p.codigo)
+                          );
+                          return (
                             <option key={p.codigo} value={p.codigo}>
-                              {p.nombre} ({p.codigo})
+                              {p.nombre} ({p.codigo}) — sistema: {formatCant(inv ? inv.cantidad : 0)}
                             </option>
-                          ))}
+                          );
+                        })}
                       </select>
                       <input
                         type="number"
