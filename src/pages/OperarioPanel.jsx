@@ -9,7 +9,7 @@ import FormularioVenta from "../components/FormularioVenta";
 import FormularioVentaGranel from "../components/FormularioVentaGranel";
 import FormularioTransaccion from "../components/FormularioTransaccion";
 import RegistrosTabla from "../components/RegistrosTabla";
-import ConfirmModal from "../components/ConfirmModal";
+import ResumenTurno from "../components/ResumenTurno";
 import TareasTab from "../components/TareasTab";
 import { formatMoney, formatVol, formatCant } from "../utils/format";
 
@@ -55,7 +55,8 @@ export default function OperarioPanel() {
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensaje, setMensaje] = useState(null);
-  const [confirmarCerrarTurno, setConfirmarCerrarTurno] = useState(false);
+  const [resumenAbierto, setResumenAbierto] = useState(false);
+  const [resumenEnCierre, setResumenEnCierre] = useState(false);
   const [turnoEnRevision, setTurnoEnRevision] = useState(null);
   const [tareasRevision, setTareasRevision] = useState([]);
   const [lecturasRevision, setLecturasRevision] = useState([]);
@@ -278,7 +279,8 @@ export default function OperarioPanel() {
   }
 
   async function manejarCerrarTurno(texto = "") {
-    setConfirmarCerrarTurno(false);
+    setResumenAbierto(false);
+    setResumenEnCierre(false);
     setCargandoAccion(true);
     try {
       await api.cerrarTurno(token, turnoSeleccionado.id, texto);
@@ -291,6 +293,20 @@ export default function OperarioPanel() {
       }
     } catch (err) {
       mostrarError(err);
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  async function abrirResumen(modoCierre) {
+    if (!turnoSeleccionado) return;
+    setCargandoAccion(true);
+    try {
+      await cargarRegistrosDelTurno(turnoSeleccionado);
+      setResumenEnCierre(modoCierre);
+      setResumenAbierto(true);
+    } catch {
+      mostrarError("No se pudo cargar el resumen del turno.");
     } finally {
       setCargandoAccion(false);
     }
@@ -599,7 +615,8 @@ export default function OperarioPanel() {
         <TurnoStatus
           turno={turnoSeleccionado}
           turnosDisponibles={turnos}
-          onCerrar={() => setConfirmarCerrarTurno(true)}
+          onCerrar={() => abrirResumen(true)}
+          onVerResumen={() => abrirResumen(false)}
           onSolicitarAbrir={manejarSolicitarAbrir}
           cargando={cargandoAccion}
           bloquearAbrir={Boolean(turnoEnRevision)}
@@ -1106,12 +1123,24 @@ export default function OperarioPanel() {
         )}
       </main>
 
-      <ConfirmModal
-        open={confirmarCerrarTurno}
-        mensaje={`¿Cerrar el turno ${turnoSeleccionado?.id}? No podrás registrar más movimientos en él.`}
-        textoLabel="Observaciones del cierre (opcional)"
-        onConfirmar={manejarCerrarTurno}
-        onCancelar={() => setConfirmarCerrarTurno(false)}
+      <ResumenTurno
+        abierto={resumenAbierto}
+        turno={turnoSeleccionado}
+        lecturas={lecturas}
+        ventas={ventas}
+        ventasGranel={ventasGranel}
+        transacciones={transacciones}
+        tiposTransaccion={tiposTransaccion}
+        clientes={clientes}
+        productos={productos}
+        productosGranel={productosGranel}
+        modoCierre={resumenEnCierre}
+        cargando={cargandoAccion}
+        onConfirmarCierre={manejarCerrarTurno}
+        onCerrar={() => {
+          setResumenAbierto(false);
+          setResumenEnCierre(false);
+        }}
       />
     </div>
   );

@@ -179,6 +179,21 @@
   outline-offset: 1px;
 }
 
+.field textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-3);
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.field textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* -------------------- Botones -------------------- */
 .btn {
   border: none;
@@ -630,6 +645,72 @@
   text-align: center;
   padding: var(--spacing-6) 0;
   color: #fff;
+}
+
+/* -------------------- Resumen del turno -------------------- */
+.modal--resumen {
+  max-width: 660px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.resumen-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-4);
+}
+
+.resumen-seccion {
+  margin-bottom: var(--spacing-6);
+}
+
+.resumen-seccion__titulo {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 var(--spacing-3);
+}
+
+.resumen-totales {
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.resumen-total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  font-size: 0.95rem;
+}
+
+.resumen-total.linea {
+  margin-top: var(--spacing-2);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.resumen-total--balance {
+  font-weight: 700;
+  font-size: 1.05rem;
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-3);
+  margin-top: var(--spacing-1);
+}
+
+.resumen-cierre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 100%;
 }
 
 @media (max-width: 640px) {
