@@ -35,6 +35,7 @@ const CATALOGOS = [
     titulo: "Clientes",
     apiResource: api.clientes,
     idField: "id",
+    formEnModal: true,
     campos: [
       { key: "nombre", label: "Nombre", type: "text" },
       { key: "tipo", label: "Tipo", type: "text" },
@@ -147,6 +148,7 @@ export default function Catalogos() {
         campos={catalogo.campos}
         idField={catalogo.idField}
         filtroPor={catalogo.filtroPor}
+        formEnModal={catalogo.formEnModal}
       />
     </div>
   );

@@ -13,7 +13,16 @@ import { formatMoney } from "../utils/format";
  * campos: [{ key, label, type ('text'|'number'|'select'|'multiselect-credito'),
  *           idField (true si es la PK, no editable al actualizar), required }]
  */
-export default function CatalogoManager({ titulo, apiResource, campos, idField, filtroPor }) {
+export default function CatalogoManager({
+  titulo,
+  apiResource,
+  campos,
+  idField,
+  filtroPor,
+  formEnModal = false,
+  permitirEliminar = true,
+  onCambio,
+}) {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({});
@@ -22,6 +31,7 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
   const [error, setError] = useState(null);
   const [filtro, setFiltro] = useState("");
   const [itemAEliminar, setItemAEliminar] = useState(null);
+  const [modalAbierto, setModalAbierto] = useState(false);
   const [opcionesCreditos, setOpcionesCreditos] = useState([]);
 
   const necesitaCreditos = campos.some((c) => c.type === "multiselect-credito");
@@ -54,6 +64,21 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
   function limpiarForm() {
     setForm({});
     setEditando(null);
+    setError(null);
+  }
+
+  function abrirModal() {
+    setModalAbierto(true);
+  }
+
+  function cerrarModal() {
+    setModalAbierto(false);
+    limpiarForm();
+  }
+
+  function abrirCrear() {
+    limpiarForm();
+    abrirModal();
   }
 
   function cargarParaEditar(item) {
@@ -65,6 +90,8 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
     });
     setForm(formInicial);
     setEditando(item[idField]);
+    setError(null);
+    abrirModal();
   }
 
   async function manejarSubmit(evento) {
@@ -79,7 +106,9 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
         await apiResource.crear(token, form);
       }
       limpiarForm();
+      setModalAbierto(false);
       await cargar();
+      onCambio?.();
     } catch (err) {
       setError(err.detail);
     } finally {
@@ -94,6 +123,7 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
     try {
       await apiResource.eliminar(token, item[idField]);
       await cargar();
+      onCambio?.();
     } catch (err) {
       setError(err.detail);
     }
@@ -176,31 +206,38 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
               ))}
             </select>
           )}
-          {editando !== null && (
+          {!formEnModal && editando !== null && (
             <button className="btn btn--ghost" onClick={limpiarForm}>
               Cancelar edición
+            </button>
+          )}
+          {formEnModal && (
+            <button className="btn btn--primary" onClick={abrirCrear}>
+              + Crear {titulo.toLowerCase()}
             </button>
           )}
         </div>
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && !formEnModal && <div className="alert alert--error">{error}</div>}
 
-      <form onSubmit={manejarSubmit} style={{ marginBottom: "var(--spacing-6)" }}>
-        <div className="form-grid">
-          {campos.map((campo) => (
-            <div className="field" key={campo.key}>
-              <label htmlFor={campo.key}>{campo.label}</label>
-              {renderCampo(campo)}
+      {!formEnModal && (
+        <form onSubmit={manejarSubmit} style={{ marginBottom: "var(--spacing-6)" }}>
+          <div className="form-grid">
+            {campos.map((campo) => (
+              <div className="field" key={campo.key}>
+                <label htmlFor={campo.key}>{campo.label}</label>
+                {renderCampo(campo)}
+              </div>
+            ))}
+            <div className="field field--full">
+              <button type="submit" className="btn btn--primary" disabled={cargando}>
+                {editando !== null ? "Guardar cambios" : `Crear ${titulo.toLowerCase()}`}
+              </button>
             </div>
-          ))}
-          <div className="field field--full">
-            <button type="submit" className="btn btn--primary" disabled={cargando}>
-              {editando !== null ? "Guardar cambios" : `Crear ${titulo.toLowerCase()}`}
-            </button>
           </div>
-        </div>
-      </form>
+        </form>
+      )}
 
       <RegistrosTabla
         columnas={[
@@ -239,9 +276,11 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
                 <button className="btn btn--ghost" onClick={() => cargarParaEditar(item)}>
                   Editar
                 </button>
-                <button className="btn btn--danger" onClick={() => setItemAEliminar(item)}>
-                  Eliminar
-                </button>
+                {permitirEliminar && (
+                  <button className="btn btn--danger" onClick={() => setItemAEliminar(item)}>
+                    Eliminar
+                  </button>
+                )}
               </div>
             ),
           },
@@ -250,12 +289,52 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
         vacio={`Sin registros en ${titulo.toLowerCase()} todavía.`}
       />
 
-      <ConfirmModal
-        open={itemAEliminar !== null}
-        mensaje={`¿Eliminar este registro de ${titulo.toLowerCase()}?`}
-        onConfirmar={manejarEliminar}
-        onCancelar={() => setItemAEliminar(null)}
-      />
+      {formEnModal && modalAbierto && (
+        <div className="modal-overlay" onClick={cerrarModal}>
+          <div className="modal modal--form" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h3 className="modal__title">
+                {editando !== null ? `Editar ${titulo.toLowerCase()}` : `Crear ${titulo.toLowerCase()}`}
+              </h3>
+              <button className="modal__close" onClick={cerrarModal} aria-label="Cerrar">
+                ×
+              </button>
+            </div>
+
+            {error && <div className="alert alert--error">{error}</div>}
+
+            <form onSubmit={manejarSubmit}>
+              <div className="form-grid">
+                {campos.map((campo) => (
+                  <div className="field" key={campo.key}>
+                    <label htmlFor={campo.key}>{campo.label}</label>
+                    {renderCampo(campo)}
+                  </div>
+                ))}
+                <div className="field field--full">
+                  <div className="modal__acciones">
+                    <button type="button" className="btn btn--ghost" onClick={cerrarModal}>
+                      Cancelar
+                    </button>
+                    <button type="submit" className="btn btn--primary" disabled={cargando}>
+                      {cargando ? "Guardando..." : "Guardar"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {permitirEliminar && (
+        <ConfirmModal
+          open={itemAEliminar !== null}
+          mensaje={`¿Eliminar este registro de ${titulo.toLowerCase()}?`}
+          onConfirmar={manejarEliminar}
+          onCancelar={() => setItemAEliminar(null)}
+        />
+      )}
     </div>
   );
 }

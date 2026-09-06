@@ -11,12 +11,25 @@ import FormularioTransaccion from "../components/FormularioTransaccion";
 import RegistrosTabla from "../components/RegistrosTabla";
 import ResumenTurno from "../components/ResumenTurno";
 import TareasTab from "../components/TareasTab";
+import CatalogoManager from "../components/CatalogoManager";
 import { formatMoney, formatVol, formatCant, unidadGranel } from "../utils/format";
+
+const CAMPOS_CLIENTES = [
+  { key: "nombre", label: "Nombre", type: "text" },
+  { key: "tipo", label: "Tipo", type: "text" },
+  {
+    key: "creditos",
+    label: "Tipos de crédito habilitados",
+    type: "multiselect-credito",
+    required: false,
+  },
+];
 
 const TABS = [
   { key: "lecturas", label: "Lecturas de manguera" },
   { key: "ventas", label: "Ventas de complementarios" },
   { key: "pagos", label: "Crédito" },
+  { key: "clientes", label: "Clientes" },
   { key: "transacciones", label: "Transacciones" },
   { key: "otrasIslas", label: "Venta en otras islas" },
   { key: "inventario", label: "Inventario" },
@@ -93,6 +106,16 @@ export default function OperarioPanel() {
     }
   }, [token]);
 
+  const cargarClientes = useCallback(async ({ signal } = {}) => {
+    try {
+      const data = await api.listarClientes(token, { signal });
+      setClientes(data);
+    } catch {
+      if (signal?.aborted) return;
+      setClientes([]);
+    }
+  }, [token]);
+
   const cargarRegistrosDelTurno = useCallback(
     async (turno, { signal } = {}) => {
       if (!turno) {
@@ -147,12 +170,12 @@ export default function OperarioPanel() {
     api.listarAlertas(token, { signal }).then(setAlertas).catch(() => setAlertas([]));
     api.listarProductosGranel(token, { signal }).then(setProductosGranel).catch(() => setProductosGranel([]));
     api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => setProductos([]));
-    api.listarClientes(token, { signal }).then(setClientes).catch(() => setClientes([]));
+    cargarClientes({ signal });
     api.listarIslas(token, { signal }).then(setIslas).catch(() => setIslas([]));
     api.tiposTransaccion.listar(token, { signal }).then(setTiposTransaccion).catch(() => setTiposTransaccion([]));
 
     return () => ctrl.abort();
-  }, [token, cargarTurnos, cargarRevision]);
+  }, [token, cargarTurnos, cargarRevision, cargarClientes]);
 
   // Cargar mangueras filtradas por isla del turno seleccionado
   useEffect(() => {
@@ -726,6 +749,18 @@ export default function OperarioPanel() {
                   />
                 </div>
               </>
+            )}
+
+            {tab === "clientes" && (
+              <CatalogoManager
+                titulo="Clientes"
+                apiResource={api.clientes}
+                idField="id"
+                campos={CAMPOS_CLIENTES}
+                formEnModal
+                permitirEliminar={false}
+                onCambio={cargarClientes}
+              />
             )}
 
             {tab === "transacciones" && (
