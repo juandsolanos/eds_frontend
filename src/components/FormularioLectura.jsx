@@ -3,10 +3,11 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import InputMiles, { parseMiles } from "./InputMiles";
 import CamaraCaptura from "./CamaraCaptura";
+import { unidadGranel } from "../utils/format";
 
 const nfMiles = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
 
-export default function FormularioLectura({ mangueras, lecturas, onRegistrar, cargando }) {
+export default function FormularioLectura({ mangueras, lecturas, onRegistrar, cargando, productosGranel = [] }) {
   const { token } = useAuth();
 
   const [mangueraActiva, setMangueraActiva] = useState(null);
@@ -89,6 +90,11 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
 
   const mangueraSeleccionada = mangueras.find((m) => m.id === mangueraActiva);
 
+  function unidadDeManguera(manguera) {
+    const producto = (productosGranel || []).find((p) => p.codigo === String(manguera.codigo_combustible));
+    return unidadGranel(producto?.unidad);
+  }
+
   return (
     <div>
       <div className="manguera-list">
@@ -112,7 +118,9 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                     <div className="manguera-item__resumen">
                       {(() => {
                         const lectura = lecturas.find((l) => l.manguera_id === m.id);
-                        return lectura ? `${nfMiles.format(lectura.lectura_final - lectura.lectura_inicial)} gal` : null;
+                        return lectura
+                          ? `${nfMiles.format(lectura.lectura_final - lectura.lectura_inicial)} ${unidadDeManguera(m).corto}`
+                          : null;
                       })()}
                     </div>
                   )}
@@ -157,7 +165,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
             <form onSubmit={manejarSubmit}>
               <div className="form-grid">
                 <div className="field">
-                  <label htmlFor="lectura_inicial">Lectura inicial (galones)</label>
+                  <label htmlFor="lectura_inicial">Lectura inicial ({unidadDeManguera(mangueraSeleccionada).nombre.toLowerCase()})</label>
                   <InputMiles
                     id="lectura_inicial"
                     step="0.01"
@@ -168,7 +176,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="lectura_final">Lectura final (galones)</label>
+                  <label htmlFor="lectura_final">Lectura final ({unidadDeManguera(mangueraSeleccionada).nombre.toLowerCase()})</label>
                   <InputMiles
                     id="lectura_final"
                     step="0.01"

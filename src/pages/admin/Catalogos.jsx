@@ -49,6 +49,15 @@ const CATALOGOS = [
       { key: "codigo", label: "Código", type: "text" },
       { key: "nombre", label: "Nombre", type: "text" },
       { key: "precio_unitario", label: "Precio unitario", type: "number", format: "money" },
+      {
+        key: "unidad",
+        label: "Unidad de medida",
+        type: "select",
+        opciones: [
+          { value: "galones", label: "Galones" },
+          { value: "litros", label: "Litros" },
+        ],
+      },
     ],
   },
   {

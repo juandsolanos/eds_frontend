@@ -16,3 +16,12 @@ export function formatVol(value) {
 export function formatCant(value) {
   return nfInt.format(Number(value ?? 0));
 }
+
+const UNIDADES = {
+  galones: { nombre: "Galones", corto: "gal" },
+  litros: { nombre: "Litros", corto: "L" },
+};
+
+export function unidadGranel(unidad) {
+  return UNIDADES[unidad] || { nombre: "Galones", corto: "gal" };
+}

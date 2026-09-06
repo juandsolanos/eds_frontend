@@ -11,7 +11,7 @@ import FormularioTransaccion from "../components/FormularioTransaccion";
 import RegistrosTabla from "../components/RegistrosTabla";
 import ResumenTurno from "../components/ResumenTurno";
 import TareasTab from "../components/TareasTab";
-import { formatMoney, formatVol, formatCant } from "../utils/format";
+import { formatMoney, formatVol, formatCant, unidadGranel } from "../utils/format";
 
 const TABS = [
   { key: "lecturas", label: "Lecturas de manguera" },
@@ -490,6 +490,13 @@ export default function OperarioPanel() {
 
   const turnoAbierto = turnoSeleccionado?.estado === "abierto";
 
+  const granelUnidadPorCodigo = new Map((productosGranel || []).map((p) => [String(p.codigo), p.unidad]));
+  function unidadCortoDeManguera(mangueraId) {
+    const manguera = mangueras.find((m) => m.id === Number(mangueraId));
+    const codigo = manguera ? String(manguera.codigo_combustible) : null;
+    return codigo ? unidadGranel(granelUnidadPorCodigo.get(codigo)).corto : "gal";
+  }
+
   // Los tipos de transacción y su signo vienen del backend ("TiposTransaccion").
   // La pestaña "Crédito" muestra únicamente las de tipo "credito"; la pestaña
   // "Transacciones" muestra las demás transacciones
@@ -642,6 +649,7 @@ export default function OperarioPanel() {
                 <FormularioLectura
                   mangueras={mangueras}
                   lecturas={lecturas}
+                  productosGranel={productosGranel}
                   onRegistrar={manejarRegistrarLectura}
                   cargando={cargandoAccion}
                 />
@@ -651,8 +659,9 @@ export default function OperarioPanel() {
                       { key: "manguera_id", label: "Manguera" },
                       {
                         key: "cantidad",
-                        label: "Galones",
-                        render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
+                        label: "Volumen",
+                        render: (f) =>
+                          `${formatVol(f.lectura_final - f.lectura_inicial)} ${unidadCortoDeManguera(f.manguera_id)}`,
                       },
                       { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                       {
@@ -789,7 +798,12 @@ export default function OperarioPanel() {
                       <RegistrosTabla
                         columnas={[
                           { key: "codigo", label: "Combustible" },
-                          { key: "cantidad", label: "Galones", render: (f) => formatVol(f.cantidad) },
+                          {
+                            key: "cantidad",
+                            label: "Cantidad",
+                            render: (f) =>
+                              `${formatVol(f.cantidad)} ${unidadGranel(granelUnidadPorCodigo.get(String(f.codigo))).corto}`,
+                          },
                           { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                         ]}
                         filas={ventasGranelOtra}
@@ -913,8 +927,9 @@ export default function OperarioPanel() {
                     { key: "manguera_id", label: "Manguera" },
                     {
                       key: "cantidad",
-                      label: "Galones",
-                      render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
+                      label: "Volumen",
+                      render: (f) =>
+                        `${formatVol(f.lectura_final - f.lectura_inicial)} ${unidadCortoDeManguera(f.manguera_id)}`,
                     },
                     { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                   ]}
@@ -1134,6 +1149,7 @@ export default function OperarioPanel() {
         clientes={clientes}
         productos={productos}
         productosGranel={productosGranel}
+        mangueras={mangueras}
         modoCierre={resumenEnCierre}
         cargando={cargandoAccion}
         onConfirmarCierre={manejarCerrarTurno}

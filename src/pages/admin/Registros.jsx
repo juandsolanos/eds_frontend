@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
-import { formatMoney, formatVol, formatCant } from "../../utils/format";
+import { formatMoney, formatVol, formatCant, unidadGranel } from "../../utils/format";
 
 function formatoFecha(iso) {
   return new Date(iso).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
@@ -18,6 +18,8 @@ export default function Registros() {
 
   const [movimientos, setMovimientos] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [productosGranel, setProductosGranel] = useState([]);
+  const [mangueras, setMangueras] = useState([]);
   const [formMovimiento, setFormMovimiento] = useState({ codigo: "", cantidad: "", origen: "", destino: "" });
   const [error, setError] = useState(null);
 
@@ -38,6 +40,8 @@ export default function Registros() {
       if (err.name !== "AbortError") setError(err.detail);
     });
     api.listarProductosUnidad(token, undefined, { signal }).then(setProductos).catch(() => {});
+    api.listarProductosGranel(token, undefined, { signal }).then(setProductosGranel).catch(() => {});
+    api.listarMangueras(token, undefined, { signal }).then(setMangueras).catch(() => {});
     return () => ctrl.abort();
   }, [token, cargarTurnos]);
 
@@ -69,6 +73,13 @@ export default function Registros() {
     } catch (err) {
       setError(err.detail);
     }
+  }
+
+  const granelUnidadPorCodigo = new Map((productosGranel || []).map((p) => [String(p.codigo), p.unidad]));
+  function unidadCortoLectura(lectura) {
+    const manguera = mangueras.find((m) => m.id === Number(lectura.manguera_id));
+    const codigo = manguera ? String(manguera.codigo_combustible) : null;
+    return codigo ? unidadGranel(granelUnidadPorCodigo.get(codigo)).corto : "gal";
   }
 
   return (
@@ -128,9 +139,10 @@ export default function Registros() {
             columnas={[
               { key: "manguera_id", label: "Manguera" },
               {
-                key: "galones",
-                label: "Galones",
-                render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
+                key: "volumen",
+                label: "Volumen",
+                render: (f) =>
+                  `${formatVol(f.lectura_final - f.lectura_inicial)} ${unidadCortoLectura(f)}`,
               },
               { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
               {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import RegistrosTabla from "./RegistrosTabla";
-import { formatMoney, formatVol, formatCant } from "../utils/format";
+import { formatMoney, formatVol, formatCant, unidadGranel } from "../utils/format";
 
 export default function ResumenTurno({
   abierto,
@@ -13,6 +13,7 @@ export default function ResumenTurno({
   clientes,
   productos,
   productosGranel,
+  mangueras = [],
   modoCierre = false,
   cargando = false,
   onConfirmarCierre,
@@ -45,12 +46,30 @@ export default function ResumenTurno({
   const tipoMap = new Map((tiposTransaccion || []).map((t) => [t.id, t]));
   const clienteMap = new Map((clientes || []).map((c) => [c.id, c]));
   const productoMap = new Map((productos || []).map((p) => [p.codigo, p]));
-  const productoGranelMap = new Map((productosGranel || []).map((p) => [p.codigo, p]));
+  const productoGranelMap = new Map((productosGranel || []).map((p) => [String(p.codigo), p]));
+  const granelUnidadPorCodigo = new Map((productosGranel || []).map((p) => [String(p.codigo), p.unidad]));
 
   const lecturasList = lecturas || [];
   const ventasUnidad = ventas || [];
   const ventasGranelList = ventasGranel || [];
   const transaccionesList = transacciones || [];
+
+  function unidadCortoLectura(lectura) {
+    const manguera = mangueras.find((m) => m.id === Number(lectura.manguera_id));
+    const codigo = manguera ? String(manguera.codigo_combustible) : null;
+    return codigo ? unidadGranel(granelUnidadPorCodigo.get(codigo)).corto : "gal";
+  }
+
+  const lecturasConUnidad = lecturasList.map((l) => ({
+    ...l,
+    _cantidad: l.lectura_final - l.lectura_inicial,
+    _unidadCorto: unidadCortoLectura(l),
+  }));
+
+  const subtotalesPorUnidad = lecturasConUnidad.reduce((acc, l) => {
+    acc[l._unidadCorto] = (acc[l._unidadCorto] || 0) + l._cantidad;
+    return acc;
+  }, {});
 
   const ventasCombinadas = [
     ...ventasGranelList.map((v) => ({
@@ -74,7 +93,6 @@ export default function ResumenTurno({
     return { ...tf, _tipoNombre: tipo?.nombre || tf.tipo, _categoria: tipo?.tipo || tf.tipo };
   });
 
-  const totalGalonesLecturas = lecturasList.reduce((acc, l) => acc + (l.lectura_final - l.lectura_inicial), 0);
   const totalValorLecturas = lecturasList.reduce((acc, l) => acc + (l.valor_total || 0), 0);
   const totalVentas = ventasCombinadas.reduce((acc, v) => acc + (v.valor_total || 0), 0);
   const totalTransaccionesCredito = transaccionesConResumen
@@ -87,9 +105,9 @@ export default function ResumenTurno({
   const columnasLecturas = [
     { key: "manguera_id", label: "Manguera" },
     {
-      key: "galones",
-      label: "Galones",
-      render: (f) => formatVol(f.lectura_final - f.lectura_inicial),
+      key: "cantidad",
+      label: "Volumen",
+      render: (f) => `${formatVol(f._cantidad)} ${f._unidadCorto}`,
     },
     { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
     {
@@ -109,7 +127,14 @@ export default function ResumenTurno({
   const columnasVentas = [
     { key: "producto", label: "Producto", render: (f) => f._nombre },
     { key: "tipo", label: "Tipo", render: (f) => (f._granel ? "Combustible" : "Complementario") },
-    { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f._cantidad) },
+    {
+      key: "cantidad",
+      label: "Cantidad",
+      render: (f) =>
+        f._granel
+          ? `${formatVol(f._cantidad)} ${unidadGranel(granelUnidadPorCodigo.get(String(f.codigo))).corto}`
+          : formatCant(f._cantidad),
+    },
     {
       key: "isla",
       label: "Isla",
@@ -153,12 +178,16 @@ export default function ResumenTurno({
 
         <section className="resumen-seccion">
           <h4 className="resumen-seccion__titulo">Lecturas de manguera</h4>
-          <RegistrosTabla columnas={columnasLecturas} filas={lecturasList} vacio="Sin lecturas registradas." />
-          {lecturasList.length > 0 && (
+          <RegistrosTabla columnas={columnasLecturas} filas={lecturasConUnidad} vacio="Sin lecturas registradas." />
+          {lecturasConUnidad.length > 0 && (
             <div className="resumen-total linea">
               <span>Total lecturas</span>
               <span>
-                {formatVol(totalGalonesLecturas)} gal &middot; {formatMoney(totalValorLecturas)}
+                {Object.entries(subtotalesPorUnidad)
+                  .map(([unidad, valor]) => `${formatVol(valor)} ${unidad}`)
+                  .join(" · ")}
+                {" · "}
+                {formatMoney(totalValorLecturas)}
               </span>
             </div>
           )}

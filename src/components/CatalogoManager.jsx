@@ -114,15 +114,31 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
           {campos.map((campo) => (
             <div className="field" key={campo.key}>
               <label htmlFor={campo.key}>{campo.label}</label>
-              <input
-                id={campo.key}
-                type={campo.type === "number" ? "number" : "text"}
-                step={campo.type === "number" ? "0.01" : undefined}
-                value={form[campo.key] ?? ""}
-                onChange={(e) => setForm({ ...form, [campo.key]: e.target.value })}
-                disabled={campo.key === idField && editando !== null}
-                required={campo.required !== false}
-              />
+              {campo.type === "select" ? (
+                <select
+                  id={campo.key}
+                  value={form[campo.key] ?? ""}
+                  onChange={(e) => setForm({ ...form, [campo.key]: e.target.value })}
+                  required={campo.required !== false}
+                >
+                  <option value="">Selecciona...</option>
+                  {campo.opciones.map((op) => (
+                    <option key={op.value ?? op} value={op.value ?? op}>
+                      {op.label ?? op}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id={campo.key}
+                  type={campo.type === "number" ? "number" : "text"}
+                  step={campo.type === "number" ? "0.01" : undefined}
+                  value={form[campo.key] ?? ""}
+                  onChange={(e) => setForm({ ...form, [campo.key]: e.target.value })}
+                  disabled={campo.key === idField && editando !== null}
+                  required={campo.required !== false}
+                />
+              )}
             </div>
           ))}
           <div className="field field--full">
@@ -139,7 +155,15 @@ export default function CatalogoManager({ titulo, apiResource, campos, idField, 
             key: c.key,
             label: c.label,
             mono: c.format === "money",
-            render: c.format === "money" ? (item) => formatMoney(item[c.key]) : undefined,
+            render:
+              c.format === "money"
+                ? (item) => formatMoney(item[c.key])
+                : c.type === "select"
+                ? (item) => {
+                    const op = c.opciones.find((o) => (o.value ?? o) === item[c.key]);
+                    return op ? op.label ?? op : item[c.key];
+                  }
+                : undefined,
           })),
           {
             key: "_acciones",

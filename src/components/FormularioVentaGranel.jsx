@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatMoney } from "../utils/format";
+import { formatMoney, unidadGranel } from "../utils/format";
 import InputMiles from "./InputMiles";
 
 export default function FormularioVentaGranel({ productos, onRegistrar, cargando }) {
@@ -7,6 +7,7 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
   const [cantidad, setCantidad] = useState("");
 
   const productoSeleccionado = productos.find((p) => p.codigo === codigo);
+  const unidad = productoSeleccionado ? unidadGranel(productoSeleccionado.unidad) : null;
   const valorEstimado = productoSeleccionado && cantidad
     ? formatMoney(productoSeleccionado.precio_unitario * Number(cantidad))
     : null;
@@ -37,7 +38,7 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
           </select>
         </div>
         <div className="field">
-          <label htmlFor="cantidad_granel">Galones</label>
+          <label htmlFor="cantidad_granel">{unidad ? unidad.nombre : "Cantidad"}</label>
           <InputMiles
             id="cantidad_granel"
             step="0.01"
