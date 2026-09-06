@@ -1,10 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import InputMiles from "./InputMiles";
 
 export default function FormularioTransaccion({ tipos, clientes, mostrarCliente = true, onRegistrar, cargando }) {
   const [tipo, setTipo] = useState(tipos.length > 0 ? tipos[0].id : "");
   const [valor, setValor] = useState("");
   const [clienteId, setClienteId] = useState("");
+
+  const clientesFiltrados = mostrarCliente
+    ? (clientes || []).filter((c) => (c.creditos || []).includes(tipo))
+    : [];
+
+  useEffect(() => {
+    if (!mostrarCliente) return;
+    const sigueHabilitado = clientesFiltrados.some((c) => String(c.id) === String(clienteId));
+    if (clienteId && !sigueHabilitado) setClienteId("");
+  }, [tipo, mostrarCliente, clientesFiltrados, clienteId]);
 
   function limpiar() {
     setValor("");
@@ -51,12 +61,15 @@ export default function FormularioTransaccion({ tipos, clientes, mostrarCliente 
             <label htmlFor="cliente">Cliente (opcional)</label>
             <select id="cliente" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
               <option value="">Sin cliente asociado</option>
-              {clientes.map((c) => (
+              {clientesFiltrados.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre} ({c.tipo})
                 </option>
               ))}
             </select>
+            {clientesFiltrados.length === 0 && (
+              <small>No hay clientes con este tipo de crédito habilitado.</small>
+            )}
           </div>
         )}
 

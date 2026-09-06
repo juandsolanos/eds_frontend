@@ -38,6 +38,12 @@ const CATALOGOS = [
     campos: [
       { key: "nombre", label: "Nombre", type: "text" },
       { key: "tipo", label: "Tipo", type: "text" },
+      {
+        key: "creditos",
+        label: "Tipos de crédito habilitados",
+        type: "multiselect-credito",
+        required: false,
+      },
     ],
   },
   {
