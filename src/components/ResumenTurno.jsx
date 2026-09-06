@@ -71,21 +71,18 @@ export default function ResumenTurno({
 
   const transaccionesConResumen = transaccionesList.map((tf) => {
     const tipo = tipoMap.get(tf.tipo);
-    const signo = tipo?.signo ?? 1;
-    return { ...tf, _tipoNombre: tipo?.nombre || tf.tipo, _signo: signo };
+    return { ...tf, _tipoNombre: tipo?.nombre || tf.tipo, _categoria: tipo?.tipo || tf.tipo };
   });
 
   const totalGalonesLecturas = lecturasList.reduce((acc, l) => acc + (l.lectura_final - l.lectura_inicial), 0);
   const totalValorLecturas = lecturasList.reduce((acc, l) => acc + (l.valor_total || 0), 0);
   const totalVentas = ventasCombinadas.reduce((acc, v) => acc + (v.valor_total || 0), 0);
-  const totalIngresosTransacciones = transaccionesConResumen
-    .filter((t) => t._signo > 0)
+  const totalTransaccionesCredito = transaccionesConResumen
+    .filter((t) => t._categoria === "credito")
     .reduce((acc, t) => acc + (t.valor || 0), 0);
-  const totalEgresosTransacciones = transaccionesConResumen
-    .filter((t) => t._signo < 0)
+  const totalTransaccionesEfectivo = transaccionesConResumen
+    .filter((t) => t._categoria === "efectivo")
     .reduce((acc, t) => acc + (t.valor || 0), 0);
-  const balanceTransacciones = totalIngresosTransacciones - totalEgresosTransacciones;
-  const balanceFinal = totalValorLecturas + totalVentas + balanceTransacciones;
 
   const columnasLecturas = [
     { key: "manguera_id", label: "Manguera" },
@@ -132,7 +129,7 @@ export default function ResumenTurno({
       key: "valor",
       label: "Valor",
       mono: true,
-      render: (f) => formatMoney(f._signo < 0 ? -(f.valor || 0) : f.valor || 0),
+      render: (f) => formatMoney(f.valor || 0),
     },
   ];
 
@@ -197,16 +194,12 @@ export default function ResumenTurno({
             <span>{formatMoney(totalVentas)}</span>
           </div>
           <div className="resumen-total">
-            <span>Transacciones ingreso</span>
-            <span>{formatMoney(totalIngresosTransacciones)}</span>
+            <span>Total transacciones de crédito</span>
+            <span>{formatMoney(totalTransaccionesCredito)}</span>
           </div>
           <div className="resumen-total">
-            <span>Transacciones egreso</span>
-            <span>{formatMoney(-totalEgresosTransacciones)}</span>
-          </div>
-          <div className="resumen-total resumen-total--balance">
-            <span>Balance del turno</span>
-            <span>{formatMoney(balanceFinal)}</span>
+            <span>Total transacciones efectivo</span>
+            <span>{formatMoney(totalTransaccionesEfectivo)}</span>
           </div>
         </div>
 
