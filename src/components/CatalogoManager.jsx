@@ -33,8 +33,10 @@ export default function CatalogoManager({
   const [itemAEliminar, setItemAEliminar] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [opcionesCreditos, setOpcionesCreditos] = useState([]);
+  const [opcionesIslas, setOpcionesIslas] = useState([]);
 
   const necesitaCreditos = campos.some((c) => c.type === "multiselect-credito");
+  const necesitaIslas = campos.some((c) => c.type === "select-islas");
 
   const cargar = useCallback(async ({ signal } = {}) => {
     try {
@@ -54,12 +56,21 @@ export default function CatalogoManager({
     }
   }, [token]);
 
+  const cargarIslas = useCallback(async ({ signal } = {}) => {
+    try {
+      setOpcionesIslas(await api.islas.listar(token, { signal }));
+    } catch (err) {
+      if (err.name !== "AbortError") setError(err.detail);
+    }
+  }, [token]);
+
   useEffect(() => {
     const ctrl = new AbortController();
     cargar({ signal: ctrl.signal });
     if (necesitaCreditos) cargarCreditos({ signal: ctrl.signal });
+    if (necesitaIslas) cargarIslas({ signal: ctrl.signal });
     return () => ctrl.abort();
-  }, [cargar, cargarCreditos, necesitaCreditos]);
+  }, [cargar, cargarCreditos, cargarIslas, necesitaCreditos, necesitaIslas]);
 
   function limpiarForm() {
     setForm({});
@@ -143,6 +154,23 @@ export default function CatalogoManager({
   }
 
   function renderCampo(campo) {
+    if (campo.type === "select-islas") {
+      return (
+        <select
+          id={campo.key}
+          value={form[campo.key] ?? ""}
+          onChange={(e) => setForm({ ...form, [campo.key]: e.target.value ? Number(e.target.value) : null })}
+          required={campo.required !== false}
+        >
+          <option value="">Selecciona...</option>
+          {opcionesIslas.map((i) => (
+            <option key={i.id} value={i.id}>
+              Isla {i.id}
+            </option>
+          ))}
+        </select>
+      );
+    }
     if (campo.type === "select") {
       return (
         <select
@@ -253,6 +281,8 @@ export default function CatalogoManager({
                     const op = c.opciones.find((o) => (o.value ?? o) === item[c.key]);
                     return op ? op.label ?? op : item[c.key];
                   }
+                : c.type === "select-islas"
+                ? (item) => (item[c.key] != null ? `Isla ${item[c.key]}` : "—")
                 : c.type === "multiselect-credito"
                 ? (item) => {
                     const valores = Array.isArray(item[c.key]) ? item[c.key] : [];

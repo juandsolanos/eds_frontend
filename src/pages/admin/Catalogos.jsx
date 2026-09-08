@@ -96,7 +96,10 @@ const CATALOGOS = [
     titulo: "Bodegas",
     apiResource: api.bodegas,
     idField: "id",
-    campos: [{ key: "nombre", label: "Nombre", type: "text" }],
+    campos: [
+      { key: "nombre", label: "Nombre", type: "text" },
+      { key: "isla", label: "Isla", type: "select-islas" },
+    ],
   },
   {
     key: "tipos-transaccion",
