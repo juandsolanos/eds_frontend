@@ -882,7 +882,7 @@ export default function OperarioPanel() {
                   <RegistrosTabla
                     columnas={[
                       { key: "bodega_nombre", label: "Bodega" },
-                      { key: "codigo", label: "Producto" },
+                      { key: "codigo", label: "Producto", render: (f) => f.producto_nombre || f.codigo },
                       { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
                     ]}
                     filas={inventario}
@@ -982,7 +982,7 @@ export default function OperarioPanel() {
                 <RegistrosTabla
                   columnas={[
                     { key: "bodega_nombre", label: "Bodega" },
-                    { key: "codigo", label: "Producto" },
+                    { key: "codigo", label: "Producto", render: (f) => f.producto_nombre || f.codigo },
                     { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
                   ]}
                   filas={inventarioRevision}

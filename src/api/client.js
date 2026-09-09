@@ -156,8 +156,10 @@ export const api = {
     request(`/api/transacciones-financieras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   listarMovimientos: (token, opts) => request("/api/productos-unidad-movimientos/", { token, ...opts }),
-  crearMovimiento: (token, datos) =>
-    request("/api/productos-unidad-movimientos/", { method: "POST", token, body: datos }),
+  transferirInventario: (token, datos) =>
+    request("/api/productos-unidad-movimientos/transferir", { method: "POST", token, body: datos }),
+  ajustarInventario: (token, datos) =>
+    request("/api/productos-unidad-movimientos/ajustar", { method: "POST", token, body: datos }),
 
   listarHistorialPrecios: (token, codigo, opts) =>
     request(
