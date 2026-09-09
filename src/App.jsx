@@ -6,6 +6,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Catalogos from "./pages/admin/Catalogos";
 import Registros from "./pages/admin/Registros";
+import Inventario from "./pages/admin/Inventario";
 import HistorialPrecios from "./pages/admin/HistorialPrecios";
 import Turnos from "./pages/admin/Turnos";
 import Alertas from "./pages/admin/Alertas";
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="turnos" element={<Turnos />} />
             <Route path="alertas" element={<Alertas />} />
             <Route path="registros" element={<Registros />} />
+            <Route path="inventario" element={<Inventario />} />
             {esSuperadmin && <Route path="catalogos" element={<Catalogos />} />}
             <Route path="historial-precios" element={<HistorialPrecios />} />
           </Route>
