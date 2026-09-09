@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
+import Select from "../../components/Select";
 import { formatCant } from "../../utils/format";
 
 function formatoFecha(iso) {
@@ -84,19 +85,13 @@ export default function Inventario() {
           <div className="form-grid">
             <div className="field">
               <label htmlFor="transf_codigo">Producto</label>
-              <select
+              <Select
                 id="transf_codigo"
                 value={formTransferencia.codigo}
-                onChange={(e) => setFormTransferencia({ ...formTransferencia, codigo: e.target.value })}
+                onChange={(v) => setFormTransferencia({ ...formTransferencia, codigo: v })}
+                options={productos.map((p) => ({ value: p.codigo, label: p.nombre }))}
                 required
-              >
-                <option value="">Selecciona...</option>
-                {productos.map((p) => (
-                  <option key={p.codigo} value={p.codigo}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="field">
               <label htmlFor="transf_cantidad">Cantidad</label>
@@ -111,35 +106,23 @@ export default function Inventario() {
             </div>
             <div className="field">
               <label htmlFor="transf_origen">Bodega origen</label>
-              <select
+              <Select
                 id="transf_origen"
                 value={formTransferencia.origen}
-                onChange={(e) => setFormTransferencia({ ...formTransferencia, origen: e.target.value })}
+                onChange={(v) => setFormTransferencia({ ...formTransferencia, origen: v })}
+                options={bodegas.map((b) => ({ value: b.id, label: b.nombre }))}
                 required
-              >
-                <option value="">Selecciona...</option>
-                {bodegas.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.nombre}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="field">
               <label htmlFor="transf_destino">Bodega destino</label>
-              <select
+              <Select
                 id="transf_destino"
                 value={formTransferencia.destino}
-                onChange={(e) => setFormTransferencia({ ...formTransferencia, destino: e.target.value })}
+                onChange={(v) => setFormTransferencia({ ...formTransferencia, destino: v })}
+                options={bodegas.map((b) => ({ value: b.id, label: b.nombre }))}
                 required
-              >
-                <option value="">Selecciona...</option>
-                {bodegas.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.nombre}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="field field--full">
               <button type="submit" className="btn btn--primary">
@@ -158,19 +141,13 @@ export default function Inventario() {
           <div className="form-grid">
             <div className="field">
               <label htmlFor="aj_codigo">Producto</label>
-              <select
+              <Select
                 id="aj_codigo"
                 value={formAjuste.codigo}
-                onChange={(e) => setFormAjuste({ ...formAjuste, codigo: e.target.value })}
+                onChange={(v) => setFormAjuste({ ...formAjuste, codigo: v })}
+                options={productos.map((p) => ({ value: p.codigo, label: p.nombre }))}
                 required
-              >
-                <option value="">Selecciona...</option>
-                {productos.map((p) => (
-                  <option key={p.codigo} value={p.codigo}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="field">
               <label htmlFor="aj_cantidad">Cantidad</label>
@@ -185,30 +162,25 @@ export default function Inventario() {
             </div>
             <div className="field">
               <label htmlFor="aj_signo">Operación</label>
-              <select
+              <Select
                 id="aj_signo"
                 value={formAjuste.signo}
-                onChange={(e) => setFormAjuste({ ...formAjuste, signo: Number(e.target.value) })}
-              >
-                <option value={1}>Entrada (+) — incrementar</option>
-                <option value={-1}>Salida (−) — decrementar</option>
-              </select>
+                onChange={(v) => setFormAjuste({ ...formAjuste, signo: Number(v) })}
+                options={[
+                  { value: 1, label: "Entrada (+) — incrementar" },
+                  { value: -1, label: "Salida (−) — decrementar" },
+                ]}
+              />
             </div>
             <div className="field">
               <label htmlFor="aj_bodega">Bodega</label>
-              <select
+              <Select
                 id="aj_bodega"
                 value={formAjuste.bodega_id}
-                onChange={(e) => setFormAjuste({ ...formAjuste, bodega_id: e.target.value })}
+                onChange={(v) => setFormAjuste({ ...formAjuste, bodega_id: v })}
+                options={bodegas.map((b) => ({ value: b.id, label: b.nombre }))}
                 required
-              >
-                <option value="">Selecciona...</option>
-                {bodegas.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.nombre}
-                  </option>
-                ))}
-              </select>
+              />
               <small style={{ color: "var(--text-muted)" }}>Por defecto la Bodega Isla 0.</small>
             </div>
             <div className="field field--full">

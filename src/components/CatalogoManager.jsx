@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import RegistrosTabla from "./RegistrosTabla";
 import ConfirmModal from "./ConfirmModal";
+import Select from "./Select";
 import { formatMoney } from "../utils/format";
 
 /**
@@ -156,36 +157,28 @@ export default function CatalogoManager({
   function renderCampo(campo) {
     if (campo.type === "select-islas") {
       return (
-        <select
+        <Select
           id={campo.key}
           value={form[campo.key] ?? ""}
-          onChange={(e) => setForm({ ...form, [campo.key]: e.target.value ? Number(e.target.value) : null })}
+          onChange={(v) =>
+            setForm({ ...form, [campo.key]: v ? Number(v) : null })
+          }
+          options={opcionesIslas.map((i) => ({ value: i.id, label: `Isla ${i.id}` }))}
           required={campo.required !== false}
-        >
-          <option value="">Selecciona...</option>
-          {opcionesIslas.map((i) => (
-            <option key={i.id} value={i.id}>
-              Isla {i.id}
-            </option>
-          ))}
-        </select>
+        />
       );
     }
     if (campo.type === "select") {
       return (
-        <select
+        <Select
           id={campo.key}
           value={form[campo.key] ?? ""}
-          onChange={(e) => setForm({ ...form, [campo.key]: e.target.value })}
+          onChange={(v) => setForm({ ...form, [campo.key]: v })}
+          options={campo.opciones.map((op) =>
+            typeof op === "string" ? op : { value: op.value, label: op.label }
+          )}
           required={campo.required !== false}
-        >
-          <option value="">Selecciona...</option>
-          {campo.opciones.map((op) => (
-            <option key={op.value ?? op} value={op.value ?? op}>
-              {op.label ?? op}
-            </option>
-          ))}
-        </select>
+        />
       );
     }
     if (campo.type === "multiselect-credito") {
@@ -225,14 +218,13 @@ export default function CatalogoManager({
         <h3 className="card__title">{titulo}</h3>
         <div style={{ display: "flex", gap: "var(--spacing-2)" }}>
           {filtroPor && (
-            <select value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-              <option value="">Todos</option>
-              {opcionesFiltro.map((valor) => (
-                <option key={valor} value={valor}>
-                  {valor}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={filtro}
+              onChange={setFiltro}
+              placeholder="Todos"
+              options={opcionesFiltro.map((valor) => ({ value: String(valor), label: String(valor) }))}
+              style={{ minWidth: 120 }}
+            />
           )}
           {!formEnModal && editando !== null && (
             <button className="btn btn--ghost" onClick={limpiarForm}>

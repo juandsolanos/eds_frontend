@@ -12,6 +12,7 @@ import RegistrosTabla from "../components/RegistrosTabla";
 import ResumenTurno from "../components/ResumenTurno";
 import TareasTab from "../components/TareasTab";
 import CatalogoManager from "../components/CatalogoManager";
+import Select from "../components/Select";
 import { formatMoney, formatVol, formatCant, unidadGranel } from "../utils/format";
 
 const CAMPOS_CLIENTES = [
@@ -625,20 +626,15 @@ export default function OperarioPanel() {
             <label style={{ fontSize: "0.85rem", fontWeight: 600, display: "block", marginBottom: "var(--spacing-2)" }}>
               Seleccionar turno
             </label>
-            <select
+            <Select
               value={turnoSeleccionado?.id || ""}
-              onChange={(e) => {
-                const t = turnos.find((t) => t.id === e.target.value);
+              onChange={(v) => {
+                const t = turnos.find((t) => String(t.id) === String(v));
                 setTurnoSeleccionado(t || null);
               }}
+              options={turnos.map((t) => ({ value: t.id, label: `${t.id} — Isla ${t.isla} (${t.estado})` }))}
               style={{ minWidth: 250 }}
-            >
-              {turnos.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.id} — Isla {t.isla} ({t.estado})
-                </option>
-              ))}
-            </select>
+            />
           </div>
         )}
 
@@ -802,20 +798,15 @@ export default function OperarioPanel() {
 
                 <div className="field" style={{ marginTop: "var(--spacing-4)" }}>
                   <label htmlFor="otra_isla">Isla desde la que vendes</label>
-                  <select
+                  <Select
                     id="otra_isla"
                     value={otraIsla}
-                    onChange={(e) => setOtraIsla(e.target.value)}
+                    onChange={setOtraIsla}
                     required
+                    placeholder={otrasIslas.length === 0 ? "No hay otras islas" : "Selecciona..."}
+                    options={otrasIslas.map((i) => ({ value: i.id, label: `Isla ${i.id}` }))}
                     style={{ minWidth: 220 }}
-                  >
-                    {otrasIslas.length === 0 && <option value="">No hay otras islas</option>}
-                    {otrasIslas.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        Isla {i.id}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 {!otraIsla ? (
@@ -1010,33 +1001,31 @@ export default function OperarioPanel() {
                 <div className="card" style={{ borderColor: "#f59e0b" }}>
                   <div className="field">
                     <label htmlFor="alerta_producto">Producto</label>
-                    <div style={{ display: "flex", gap: "var(--spacing-2)", flexWrap: "wrap" }}>
-                      <select
+                    <div style={{ display: "flex", gap: "var(--spacing-2)", flexWrap: "wrap", alignItems: "flex-start" }}>
+                      <Select
                         id="alerta_producto"
                         value={productoDiferencia}
-                        onChange={(e) => {
-                          setProductoDiferencia(e.target.value);
+                        onChange={(v) => {
+                          setProductoDiferencia(v);
                           const inv = inventarioRevision.find(
-                            (i) => String(i.codigo) === e.target.value
+                            (i) => String(i.codigo) === v
                           );
                           setCantSistema(inv ? String(inv.cantidad) : "");
                           setCantFisica("");
                           setObservacionDiferencia("");
                         }}
-                        style={{ minWidth: 220 }}
-                      >
-                        <option value="">Selecciona un producto</option>
-                        {productos.map((p) => {
+                        placeholder="Selecciona un producto"
+                        options={productos.map((p) => {
                           const inv = inventarioRevision.find(
                             (i) => String(i.codigo) === String(p.codigo)
                           );
-                          return (
-                            <option key={p.codigo} value={p.codigo}>
-                              {p.nombre} ({p.codigo}) — sistema: {formatCant(inv ? inv.cantidad : 0)}
-                            </option>
-                          );
+                          return {
+                            value: p.codigo,
+                            label: `${p.nombre} (${p.codigo}) — sistema: ${formatCant(inv ? inv.cantidad : 0)}`,
+                          };
                         })}
-                      </select>
+                        style={{ minWidth: 220 }}
+                      />
                       <input
                         type="number"
                         placeholder="Cant. física"
