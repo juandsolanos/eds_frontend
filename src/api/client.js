@@ -181,6 +181,12 @@ export const api = {
       body: { cantidad },
     }),
 
+  // Inventario administrativo con detalle de día anterior y ventas del día
+  listarInventarioDetallado: (token, isla, opts) =>
+    request(`/api/inventario/${isla ? `?isla=${isla}` : ""}`, { token, ...opts }),
+  cerrarDiaInventario: (token, opts) =>
+    request("/api/inventario/cerrar-dia", { method: "POST", token, ...opts }),
+
   // Catálogos (CRUD completo, usado por el panel de administrador)
   islas: crudEndpoints("/api/islas"),
   operarios: crudEndpoints("/api/operarios"),
