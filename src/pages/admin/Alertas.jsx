@@ -23,7 +23,7 @@ export default function Alertas() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
-  const [atendiendo, setAtendiendo] = useState(null);
+  const [verDetalle, setVerDetalle] = useState(null);
   const [nuevoEstado, setNuevoEstado] = useState("en_proceso");
   const [comentarios, setComentarios] = useState("");
 
@@ -54,10 +54,16 @@ export default function Alertas() {
     return () => ctrl.abort();
   }, [cargar]);
 
+  function abrirDetalle(alerta) {
+    setNuevoEstado(alerta.estado === "pendiente" ? "en_proceso" : alerta.estado);
+    setComentarios(alerta.comentarios || "");
+    setVerDetalle(alerta);
+  }
+
   async function manejarAtender(alerta) {
     try {
       await api.atenderAlerta(token, alerta.id, nuevoEstado, comentarios);
-      setAtendiendo(null);
+      setVerDetalle(null);
       setComentarios("");
       setNuevoEstado("en_proceso");
       await cargar();
@@ -111,7 +117,6 @@ export default function Alertas() {
                 <th>Estado</th>
                 <th>Origen</th>
                 <th>Tipo</th>
-                <th>Descripción</th>
                 <th>Fecha</th>
                 <th>Acciones</th>
               </tr>
@@ -132,56 +137,11 @@ export default function Alertas() {
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>{a.origen_tipo}</td>
                   <td style={{ whiteSpace: "nowrap" }}>{a.tipo}</td>
-                  <td>
-                    {a.descripcion}
-                    {a.entidades && a.entidades.length > 0 && (
-                      <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>
-                        {JSON.stringify(a.entidades)}
-                      </div>
-                    )}
-                    {a.comentarios && (
-                      <div style={{ color: "var(--text-muted)", fontStyle: "italic", marginTop: 4 }}>
-                        Comentario: {a.comentarios}
-                      </div>
-                    )}
-                  </td>
                   <td style={{ whiteSpace: "nowrap" }}>{new Date(a.tiempo).toLocaleString()}</td>
-                  <td>
-                    {puedeAtender(a) ? (
-                      atendiendo === a.id ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          <select
-                            value={nuevoEstado}
-                            onChange={(e) => setNuevoEstado(e.target.value)}
-                            style={{ minWidth: 140 }}
-                          >
-                            <option value="en_proceso">En proceso</option>
-                            <option value="resuelta">Resuelta</option>
-                          </select>
-                          <input
-                            placeholder="Comentario (opcional)"
-                            value={comentarios}
-                            onChange={(e) => setComentarios(e.target.value)}
-                          />
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button className="btn btn--primary" onClick={() => manejarAtender(a)}>
-                              Guardar
-                            </button>
-                            <button className="btn" onClick={() => setAtendiendo(null)}>
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button className="btn btn--primary" onClick={() => setAtendiendo(a.id)}>
-                          Atender
-                        </button>
-                      )
-                    ) : (
-                      <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                        Sin permiso
-                      </span>
-                    )}
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <button className="btn btn--primary" onClick={() => abrirDetalle(a)}>
+                      Ver más
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -241,6 +201,112 @@ export default function Alertas() {
                 Guardar configuración
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {verDetalle && (
+        <div className="modal-overlay" onClick={() => setVerDetalle(null)}>
+          <div className="modal modal--form" onClick={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <h3 className="modal__title">Detalle de alerta #{verDetalle.id}</h3>
+              <button className="modal__close" onClick={() => setVerDetalle(null)} aria-label="Cerrar">
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--spacing-3)",
+                marginBottom: "var(--spacing-5)",
+              }}
+            >
+              <div style={{ display: "flex", gap: "var(--spacing-4)", flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    color: ESTADO_COLOR[verDetalle.estado] || "#6b7280",
+                    fontWeight: 600,
+                  }}
+                >
+                  {ESTADO_LABEL[verDetalle.estado] || verDetalle.estado}
+                </span>
+                <span>{verDetalle.origen_tipo}</span>
+                <span>{verDetalle.tipo}</span>
+                <span style={{ whiteSpace: "nowrap" }}>
+                  {new Date(verDetalle.tiempo).toLocaleString()}
+                </span>
+              </div>
+
+              <div>
+                <strong style={{ display: "block", marginBottom: "var(--spacing-1)" }}>Descripción</strong>
+                <p style={{ margin: 0, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
+                  {verDetalle.descripcion}
+                </p>
+              </div>
+
+              {verDetalle.entidades && verDetalle.entidades.length > 0 && (
+                <div>
+                  <strong style={{ display: "block", marginBottom: "var(--spacing-1)" }}>Detalle</strong>
+                  <div style={{ wordBreak: "break-word", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                    {JSON.stringify(verDetalle.entidades)}
+                  </div>
+                </div>
+              )}
+
+              {verDetalle.comentarios && (
+                <div>
+                  <strong style={{ display: "block", marginBottom: "var(--spacing-1)" }}>
+                    Comentario previo
+                  </strong>
+                  <p style={{ margin: 0, wordBreak: "break-word", whiteSpace: "pre-wrap", fontStyle: "italic" }}>
+                    {verDetalle.comentarios}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {puedeAtender(verDetalle) ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  manejarAtender(verDetalle);
+                }}
+              >
+                <div className="field" style={{ marginBottom: "var(--spacing-4)" }}>
+                  <label htmlFor="alerta_estado">Estado</label>
+                  <select
+                    id="alerta_estado"
+                    value={nuevoEstado}
+                    onChange={(e) => setNuevoEstado(e.target.value)}
+                  >
+                    <option value="en_proceso">En proceso</option>
+                    <option value="resuelta">Resuelta</option>
+                  </select>
+                </div>
+                <div className="field" style={{ marginBottom: "var(--spacing-5)" }}>
+                  <label htmlFor="alerta_comentario">Comentario (opcional)</label>
+                  <textarea
+                    id="alerta_comentario"
+                    value={comentarios}
+                    onChange={(e) => setComentarios(e.target.value)}
+                  />
+                </div>
+                <div className="modal__acciones">
+                  <button type="button" className="btn btn--ghost" onClick={() => setVerDetalle(null)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn--primary">
+                    Guardar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                Sin permiso para atender esta alerta.
+              </p>
+            )}
           </div>
         </div>
       )}
