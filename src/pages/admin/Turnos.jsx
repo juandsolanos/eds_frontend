@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
-import Select from "../../components/Select";
 
 const ESTADO_COLORS = {
   creado: "#f59e0b",
@@ -242,13 +241,19 @@ export default function Turnos() {
           <form onSubmit={handleCrearTurno} style={{ display: "flex", gap: "var(--spacing-4)", flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Isla *</label>
-              <Select
+              <select
                 value={isla}
-                onChange={setIsla}
-                options={islas.map((i) => ({ value: i.id, label: `Isla ${i.id}` }))}
+                onChange={(e) => setIsla(e.target.value)}
                 required
                 style={{ minWidth: 120 }}
-              />
+              >
+                <option value="">Selecciona...</option>
+                {islas.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    Isla {i.id}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
@@ -273,13 +278,18 @@ export default function Turnos() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Responsable</label>
-              <Select
+              <select
                 value={responsable}
-                onChange={setResponsable}
-                placeholder="Sin asignar"
-                options={operarios.map((o) => ({ value: o.id, label: o.nombre || o.id }))}
+                onChange={(e) => setResponsable(e.target.value)}
                 style={{ minWidth: 180 }}
-              />
+              >
+                <option value="">Sin asignar</option>
+                {operarios.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nombre || o.id}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button className="btn btn--primary" type="submit" disabled={cargando}>
@@ -355,14 +365,19 @@ export default function Turnos() {
           <form onSubmit={handleEditarCampos} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Isla</label>
-              <Select
+              <select
                 value={editIsla}
-                onChange={setEditIsla}
-                placeholder="Seleccionar..."
-                options={islas.map((i) => ({ value: i.id, label: `Isla ${i.id}` }))}
+                onChange={(e) => setEditIsla(e.target.value)}
                 required
                 style={{ minWidth: 120 }}
-              />
+              >
+                <option value="">Seleccionar...</option>
+                {islas.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    Isla {i.id}
+                  </option>
+                ))}
+              </select>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Inicio ideal</label>
@@ -389,13 +404,18 @@ export default function Turnos() {
           <form onSubmit={handleAsignarResponsable} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Operario</label>
-              <Select
+              <select
                 value={nuevoResponsable}
-                onChange={setNuevoResponsable}
-                placeholder="Sin asignar"
-                options={operarios.map((o) => ({ value: o.id, label: o.nombre || o.id }))}
+                onChange={(e) => setNuevoResponsable(e.target.value)}
                 style={{ minWidth: 200 }}
-              />
+              >
+                <option value="">Sin asignar</option>
+                {operarios.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nombre || o.id}
+                  </option>
+                ))}
+              </select>
             </div>
             <div style={{ display: "flex", gap: "var(--spacing-3)", justifyContent: "flex-end" }}>
               <button type="button" style={btnBase} onClick={() => setResponsableTarget(null)}>Cancelar</button>
@@ -414,12 +434,17 @@ export default function Turnos() {
           <form onSubmit={handleCambiarEstado} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Estado</label>
-              <Select
+              <select
                 value={nuevoEstado}
-                onChange={setNuevoEstado}
-                options={ESTADOS_VALIDOS.map((e) => ({ value: e, label: e }))}
+                onChange={(e) => setNuevoEstado(e.target.value)}
                 style={{ minWidth: 200 }}
-              />
+              >
+                {ESTADOS_VALIDOS.map((e) => (
+                  <option key={e} value={e}>
+                    {e}
+                  </option>
+                ))}
+              </select>
             </div>
             <div style={{ display: "flex", gap: "var(--spacing-3)", justifyContent: "flex-end" }}>
               <button type="button" style={btnBase} onClick={() => setEstadoTarget(null)}>Cancelar</button>

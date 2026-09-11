@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
-import Select from "../../components/Select";
 import { formatCant } from "../../utils/format";
 
 function formatoFecha(iso) {
@@ -232,14 +231,19 @@ export default function Inventario() {
               <label htmlFor="isla_filtro" style={{ fontSize: "0.85rem", fontWeight: 600 }}>
                 Ver
               </label>
-              <Select
+              <select
                 id="isla_filtro"
                 value={islaSel}
-                onChange={setIslaSel}
-                placeholder="Todas las bodegas"
-                options={islas.map((i) => ({ value: i, label: nombreIsla(i) }))}
+                onChange={(e) => setIslaSel(e.target.value)}
                 style={{ minWidth: 180 }}
-              />
+              >
+                <option value="">Todas las bodegas</option>
+                {islas.map((i) => (
+                  <option key={i} value={i}>
+                    {nombreIsla(i)}
+                  </option>
+                ))}
+              </select>
             </div>
             <button className="btn" onClick={manejarCerrarDia} title="Congela el inventario actual como cierre de hoy">
               Cerrar día
@@ -312,28 +316,39 @@ export default function Inventario() {
               </div>
               <div className="field">
                 <label htmlFor="mov_isla">Isla destino</label>
-                <Select
+                <select
                   id="mov_isla"
                   value={moverIsla}
-                  onChange={(v) => {
-                    setMoverIsla(v);
+                  onChange={(e) => {
+                    setMoverIsla(e.target.value);
                     setMoverBodega("");
                   }}
-                  placeholder="Selecciona..."
-                  options={fuentesMovimiento.map((i) => ({ value: i, label: nombreIsla(i) }))}
                   required
-                />
+                >
+                  <option value="">Selecciona...</option>
+                  {fuentesMovimiento.map((i) => (
+                    <option key={i} value={i}>
+                      {nombreIsla(i)}
+                    </option>
+                  ))}
+                </select>
               </div>
               {bodegasDestino.length > 1 && (
                 <div className="field">
                   <label htmlFor="mov_bodega">Bodega destino</label>
-                  <Select
+                  <select
                     id="mov_bodega"
                     value={moverBodega}
-                    onChange={setMoverBodega}
-                    options={bodegasDestino.map((b) => ({ value: b.id, label: b.nombre }))}
+                    onChange={(e) => setMoverBodega(e.target.value)}
                     required
-                  />
+                  >
+                    <option value="">Selecciona...</option>
+                    {bodegasDestino.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
               <div style={{ display: "flex", gap: "var(--spacing-3)", justifyContent: "flex-end" }}>
@@ -362,15 +377,14 @@ export default function Inventario() {
               </div>
               <div className="field">
                 <label htmlFor="aj_signo">Operación</label>
-                <Select
+                <select
                   id="aj_signo"
                   value={ajustarSigno}
-                  onChange={(v) => setAjustarSigno(Number(v))}
-                  options={[
-                    { value: 1, label: "Entrada (+) — incrementar" },
-                    { value: -1, label: "Salida (−) — decrementar" },
-                  ]}
-                />
+                  onChange={(e) => setAjustarSigno(Number(e.target.value))}
+                >
+                  <option value={1}>Entrada (+) — incrementar</option>
+                  <option value={-1}>Salida (−) — decrementar</option>
+                </select>
               </div>
               <div className="field">
                 <label htmlFor="aj_cantidad">Cantidad</label>

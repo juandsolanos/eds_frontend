@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { formatMoney, unidadGranel } from "../utils/format";
 import InputMiles from "./InputMiles";
-import Select from "./Select";
 
 export default function FormularioVentaGranel({ productos, onRegistrar, cargando }) {
   const [codigo, setCodigo] = useState("");
@@ -29,13 +28,19 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
       <div className="form-grid">
         <div className="field">
           <label htmlFor="combustible">Combustible</label>
-          <Select
+          <select
             id="combustible"
             value={codigo}
-            onChange={setCodigo}
-            options={productos.map((p) => ({ value: p.codigo, label: p.nombre }))}
+            onChange={(e) => setCodigo(e.target.value)}
             required
-          />
+          >
+            <option value="">Selecciona...</option>
+            {productos.map((p) => (
+              <option key={p.codigo} value={p.codigo}>
+                {p.nombre}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="cantidad_granel">{unidad ? unidad.nombre : "Cantidad"}</label>

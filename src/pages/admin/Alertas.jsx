@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
-import Select from "../../components/Select";
 
 const ESTADO_LABEL = {
   pendiente: "Pendiente",
@@ -151,15 +150,14 @@ export default function Alertas() {
                     {puedeAtender(a) ? (
                       atendiendo === a.id ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          <Select
+                          <select
                             value={nuevoEstado}
-                            onChange={setNuevoEstado}
-                            options={[
-                              { value: "en_proceso", label: "En proceso" },
-                              { value: "resuelta", label: "Resuelta" },
-                            ]}
+                            onChange={(e) => setNuevoEstado(e.target.value)}
                             style={{ minWidth: 140 }}
-                          />
+                          >
+                            <option value="en_proceso">En proceso</option>
+                            <option value="resuelta">Resuelta</option>
+                          </select>
                           <input
                             placeholder="Comentario (opcional)"
                             value={comentarios}

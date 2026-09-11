@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { formatMoney } from "../utils/format";
 import InputMiles from "./InputMiles";
-import Select from "./Select";
 
 export default function FormularioVenta({ productos, onRegistrar, cargando }) {
   const [tipoFiltro, setTipoFiltro] = useState("");
@@ -38,26 +37,37 @@ export default function FormularioVenta({ productos, onRegistrar, cargando }) {
       <div className="form-grid">
         <div className="field">
           <label htmlFor="tipo_filtro">Filtrar por tipo</label>
-          <Select
+          <select
             id="tipo_filtro"
             value={tipoFiltro}
-            onChange={(v) => {
-              setTipoFiltro(v);
+            onChange={(e) => {
+              setTipoFiltro(e.target.value);
               setCodigo(""); // el producto elegido puede ya no estar visible con el nuevo filtro
             }}
-            placeholder="Todos los tipos"
-            options={tipos.map((t) => ({ value: t, label: t }))}
-          />
+          >
+            <option value="">Todos los tipos</option>
+            {tipos.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="producto">Producto</label>
-          <Select
+          <select
             id="producto"
             value={codigo}
-            onChange={setCodigo}
-            options={productosFiltrados.map((p) => ({ value: p.codigo, label: p.nombre }))}
+            onChange={(e) => setCodigo(e.target.value)}
             required
-          />
+          >
+            <option value="">Selecciona...</option>
+            {productosFiltrados.map((p) => (
+              <option key={p.codigo} value={p.codigo}>
+                {p.nombre}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="field">

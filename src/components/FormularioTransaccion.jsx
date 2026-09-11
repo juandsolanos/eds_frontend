@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import InputMiles from "./InputMiles";
-import Select from "./Select";
 
 export default function FormularioTransaccion({ tipos, clientes, mostrarCliente = true, onRegistrar, cargando }) {
   const [tipo, setTipo] = useState(tipos.length > 0 ? tipos[0].id : "");
@@ -37,13 +36,19 @@ export default function FormularioTransaccion({ tipos, clientes, mostrarCliente 
       <div className="form-grid">
         <div className="field">
           <label htmlFor="tipo">Tipo</label>
-          <Select
+          <select
             id="tipo"
             value={tipo}
-            onChange={setTipo}
-            options={tipos.map((t) => ({ value: String(t.id), label: t.nombre }))}
+            onChange={(e) => setTipo(e.target.value)}
             required
-          />
+          >
+            <option value="">Selecciona...</option>
+            {tipos.map((t) => (
+              <option key={t.id} value={String(t.id)}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor="valor">Valor</label>
@@ -60,16 +65,18 @@ export default function FormularioTransaccion({ tipos, clientes, mostrarCliente 
         {mostrarCliente && (
           <div className="field field--full">
             <label htmlFor="cliente">Cliente (opcional)</label>
-            <Select
+            <select
               id="cliente"
               value={clienteId}
-              onChange={setClienteId}
-              placeholder="Sin cliente asociado"
-              options={clientesFiltrados.map((c) => ({
-                value: c.id,
-                label: `${c.nombre} (${c.tipo})`,
-              }))}
-            />
+              onChange={(e) => setClienteId(e.target.value)}
+            >
+              <option value="">Sin cliente asociado</option>
+              {clientesFiltrados.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} ({c.tipo})
+                </option>
+              ))}
+            </select>
             {clientesFiltrados.length === 0 && (
               <small>No hay clientes con este tipo de crédito habilitado.</small>
             )}
