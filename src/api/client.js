@@ -210,6 +210,21 @@ export const api = {
   cerrarDiaInventario: (token, opts) =>
     request("/api/inventario/cerrar-dia", { method: "POST", token, ...opts }),
 
+  // Snapshots diarios de operación (resumen congelado y re-ejecutable del día)
+  listarSnapshots: (token, desde, hasta, opts) =>
+    request(`/api/snapshots/?desde=${desde}&hasta=${hasta}`, { token, ...opts }),
+  snapshotVivo: (token, fecha, opts) =>
+    request(`/api/snapshots/vivo${fecha ? `?fecha=${fecha}` : ""}`, { token, ...opts }),
+  obtenerSnapshot: (token, fecha, opts) =>
+    request(`/api/snapshots/${fecha}`, { token, ...opts }),
+  cerrarDiaOperativo: (token, fecha, opts) =>
+    request("/api/snapshots/cerrar-dia", {
+      method: "POST",
+      token,
+      body: fecha ? { fecha } : {},
+      ...opts,
+    }),
+
   // Catálogos (CRUD completo, usado por el panel de administrador)
   islas: crudEndpoints("/api/islas"),
   operarios: crudEndpoints("/api/operarios"),
