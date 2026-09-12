@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: "/admin/alertas", label: "Alertas" },
   { to: "/admin/catalogos", label: "Configuración", soloSuperadmin: true },
   { to: "/admin/historial-precios", label: "Historial de precios" },
+  { to: "/admin/trazabilidad", label: "Trazabilidad" },
 ];
 
 export default function AdminLayout() {

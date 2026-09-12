@@ -549,6 +549,12 @@
   vertical-align: middle;
 }
 
+.table-acciones {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: center;
+}
+
 /* -------------------- Cámara (captura obligatoria) -------------------- */
 .camara-overlay {
   position: fixed;

@@ -1,20 +1,47 @@
 import { useState, useEffect } from "react";
 import InputMiles from "./InputMiles";
 
-export default function FormularioTransaccion({ tipos, clientes, mostrarCliente = true, onRegistrar, cargando }) {
+export default function FormularioTransaccion({
+  tipos,
+  clientes,
+  mostrarCliente = true,
+  onRegistrar,
+  cargando,
+  inicial = null,
+  onActualizar = null,
+  onCancelarEditar = null,
+}) {
+  const esEdicion = Boolean(inicial);
   const [tipo, setTipo] = useState(tipos.length > 0 ? tipos[0].id : "");
   const [valor, setValor] = useState("");
   const [clienteId, setClienteId] = useState("");
 
   const clientesFiltrados = mostrarCliente
-    ? (clientes || []).filter((c) => (c.creditos || []).includes(tipo))
+    ? (clientes || []).filter(
+        (c) =>
+          (c.creditos || []).includes(tipo) ||
+          (inicial && String(c.id) === String(inicial.cliente_id))
+      )
     : [];
 
   useEffect(() => {
+    if (inicial) {
+      setTipo(String(inicial.tipo));
+      setValor(String(inicial.valor));
+      setClienteId(inicial.cliente_id != null ? String(inicial.cliente_id) : "");
+    } else {
+      setTipo(tipos.length > 0 ? tipos[0].id : "");
+      setValor("");
+      setClienteId("");
+    }
+  }, [inicial]);
+
+  useEffect(() => {
     if (!mostrarCliente) return;
+    if (esEdicion && inicial?.cliente_id != null) return;
     const sigueHabilitado = clientesFiltrados.some((c) => String(c.id) === String(clienteId));
     if (clienteId && !sigueHabilitado) setClienteId("");
-  }, [tipo, mostrarCliente, clientesFiltrados, clienteId]);
+  }, [tipo, mostrarCliente, clientesFiltrados, clienteId, esEdicion, inicial]);
 
   function limpiar() {
     setValor("");
@@ -23,11 +50,17 @@ export default function FormularioTransaccion({ tipos, clientes, mostrarCliente 
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
-    const ok = await onRegistrar({
+    const datos = {
       tipo,
       valor: Number(valor),
       cliente_id: mostrarCliente && clienteId ? Number(clienteId) : null,
-    });
+    };
+    if (esEdicion) {
+      const ok = await onActualizar(datos);
+      if (ok) onCancelarEditar?.();
+      return;
+    }
+    const ok = await onRegistrar(datos);
     if (ok) limpiar();
   }
 
@@ -83,9 +116,20 @@ export default function FormularioTransaccion({ tipos, clientes, mostrarCliente 
           </div>
         )}
 
-        <div className="field field--full">
+        <div className="field field--full modal__acciones">
+          {esEdicion && (
+            <button type="button" className="btn btn--ghost" onClick={onCancelarEditar} disabled={cargando}>
+              Cancelar edición
+            </button>
+          )}
           <button type="submit" className="btn btn--primary" disabled={cargando}>
-            {cargando ? "Registrando..." : "Registrar"}
+            {esEdicion
+              ? cargando
+                ? "Guardando..."
+                : "Guardar cambios"
+              : cargando
+                ? "Registrando..."
+                : "Registrar"}
           </button>
         </div>
       </div>

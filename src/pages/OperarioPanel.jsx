@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 
+import ConfirmModal from "../components/ConfirmModal";
 import TurnoStatus from "../components/TurnoStatus";
 import FormularioLectura from "../components/FormularioLectura";
 import FormularioVenta from "../components/FormularioVenta";
@@ -70,6 +71,12 @@ export default function OperarioPanel() {
   const [mensaje, setMensaje] = useState(null);
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [resumenEnCierre, setResumenEnCierre] = useState(false);
+  const [editandoLectura, setEditandoLectura] = useState(null);
+  const [editandoVenta, setEditandoVenta] = useState(null);
+  const [editandoVentaGranel, setEditandoVentaGranel] = useState(null);
+  const [editandoTransaccionCredito, setEditandoTransaccionCredito] = useState(null);
+  const [editandoTransaccionNoCredito, setEditandoTransaccionNoCredito] = useState(null);
+  const [itemAEliminar, setItemAEliminar] = useState(null);
   const [turnoEnRevision, setTurnoEnRevision] = useState(null);
   const [tareasRevision, setTareasRevision] = useState([]);
   const [lecturasRevision, setLecturasRevision] = useState([]);
@@ -479,6 +486,115 @@ export default function OperarioPanel() {
     }
   }
 
+  async function manejarActualizarLectura(datos) {
+    setCargandoAccion(true);
+    try {
+      await api.actualizarLectura(token, editandoLectura.id, datos);
+      mostrarExito("Lectura actualizada.");
+      await cargarRegistrosDelTurno(turnoSeleccionado);
+      return true;
+    } catch (err) {
+      mostrarError(err);
+      return false;
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  async function manejarActualizarVenta(datos) {
+    setCargandoAccion(true);
+    try {
+      await api.actualizarVenta(token, editandoVenta.id, datos);
+      mostrarExito("Venta actualizada.");
+      await cargarRegistrosDelTurno(turnoSeleccionado);
+      return true;
+    } catch (err) {
+      mostrarError(err);
+      return false;
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  async function manejarActualizarVentaGranel(datos) {
+    setCargandoAccion(true);
+    try {
+      await api.actualizarVentaGranel(token, editandoVentaGranel.id, datos);
+      mostrarExito("Venta de combustible actualizada.");
+      await cargarRegistrosDelTurno(turnoSeleccionado);
+      return true;
+    } catch (err) {
+      mostrarError(err);
+      return false;
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  async function manejarActualizarTransaccion(datos) {
+    const transaccion = editandoTransaccionCredito || editandoTransaccionNoCredito;
+    setCargandoAccion(true);
+    try {
+      await api.actualizarTransaccion(token, transaccion.id, datos);
+      mostrarExito("Transacción actualizada.");
+      await cargarRegistrosDelTurno(turnoSeleccionado);
+      return true;
+    } catch (err) {
+      mostrarError(err);
+      return false;
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  function solicitarEliminar(tipo, item) {
+    setItemAEliminar({ tipo, item });
+  }
+
+  async function confirmarEliminacion() {
+    if (!itemAEliminar) return;
+    const { tipo, item } = itemAEliminar;
+    setCargandoAccion(true);
+    try {
+      if (tipo === "lectura") await api.eliminarLectura(token, item.id);
+      else if (tipo === "venta") await api.eliminarVenta(token, item.id);
+      else if (tipo === "ventaGranel") await api.eliminarVentaGranel(token, item.id);
+      else if (tipo === "transaccion") await api.anularTransaccion(token, item.id);
+      mostrarExito(tipo === "transaccion" ? "Transacción anulada." : "Registro eliminado.");
+      setItemAEliminar(null);
+      await cargarRegistrosDelTurno(turnoSeleccionado);
+    } catch (err) {
+      mostrarError(err);
+    } finally {
+      setCargandoAccion(false);
+    }
+  }
+
+  function columnasAcciones(iniciarEdicion, tipoEliminar) {
+    return {
+      key: "_acciones",
+      label: "",
+      render: (f) => (
+        <div className="table-acciones">
+          <button
+            className="btn btn--ghost btn--sm"
+            disabled={cargandoAccion}
+            onClick={() => iniciarEdicion(f)}
+          >
+            Editar
+          </button>
+          <button
+            className="btn btn--danger btn--sm"
+            disabled={cargandoAccion}
+            onClick={() => solicitarEliminar(tipoEliminar, f)}
+          >
+            {tipoEliminar === "transaccion" ? "Anular" : "Eliminar"}
+          </button>
+        </div>
+      ),
+    };
+  }
+
   async function manejarMarcarTarea(tareaId, realizada) {
     setCargandoAccion(true);
     try {
@@ -509,6 +625,21 @@ export default function OperarioPanel() {
     } finally {
       setCargandoAccion(false);
     }
+  }
+
+  function cambiarTab(nuevoTab) {
+    setTab(nuevoTab);
+    setEditandoLectura(null);
+    setEditandoVenta(null);
+    setEditandoVentaGranel(null);
+    setEditandoTransaccionCredito(null);
+    setEditandoTransaccionNoCredito(null);
+  }
+
+  function cambiarSubtab(nuevoSubtab) {
+    setSubtabOtras(nuevoSubtab);
+    setEditandoVenta(null);
+    setEditandoVentaGranel(null);
   }
 
   const turnoAbierto = turnoSeleccionado?.estado === "abierto";
@@ -661,7 +792,7 @@ export default function OperarioPanel() {
                 <button
                   key={t.key}
                   className={`tab ${tab === t.key ? "tab--activo" : ""}`}
-                  onClick={() => setTab(t.key)}
+                  onClick={() => cambiarTab(t.key)}
                 >
                   {t.label}
                 </button>
@@ -671,10 +802,14 @@ export default function OperarioPanel() {
             {tab === "lecturas" && (
               <>
                 <FormularioLectura
+                  key={editandoLectura ? `editar-${editandoLectura.id}` : "nuevo"}
                   mangueras={mangueras}
                   lecturas={lecturas}
                   productosGranel={productosGranel}
                   onRegistrar={manejarRegistrarLectura}
+                  inicial={editandoLectura}
+                  onActualizar={manejarActualizarLectura}
+                  onCancelarEditar={() => setEditandoLectura(null)}
                   cargando={cargandoAccion}
                 />
                 <div style={{ marginTop: "var(--spacing-6)" }}>
@@ -700,6 +835,7 @@ export default function OperarioPanel() {
                             "—"
                           ),
                       },
+                      columnasAcciones((f) => setEditandoLectura(f), "lectura"),
                     ]}
                     filas={lecturas}
                     vacio="Sin lecturas registradas en este turno."
@@ -711,8 +847,12 @@ export default function OperarioPanel() {
             {tab === "ventas" && (
               <>
                 <FormularioVenta
+                  key={editandoVenta ? `editar-${editandoVenta.id}` : "nuevo"}
                   productos={productos}
                   onRegistrar={manejarRegistrarVenta}
+                  inicial={editandoVenta}
+                  onActualizar={manejarActualizarVenta}
+                  onCancelarEditar={() => setEditandoVenta(null)}
                   cargando={cargandoAccion}
                 />
                 <div style={{ marginTop: "var(--spacing-6)" }}>
@@ -721,6 +861,7 @@ export default function OperarioPanel() {
                       { key: "codigo", label: "Producto" },
                       { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
                       { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
+                      columnasAcciones((f) => setEditandoVenta(f), "venta"),
                     ]}
                     filas={ventas}
                     vacio="Sin ventas registradas en este turno."
@@ -732,10 +873,14 @@ export default function OperarioPanel() {
             {tab === "pagos" && (
               <>
                 <FormularioTransaccion
+                  key={editandoTransaccionCredito ? `editar-${editandoTransaccionCredito.id}` : "nuevo"}
                   tipos={tiposCredito}
                   clientes={clientes}
                   mostrarCliente={true}
                   onRegistrar={manejarRegistrarTransaccion}
+                  inicial={editandoTransaccionCredito}
+                  onActualizar={manejarActualizarTransaccion}
+                  onCancelarEditar={() => setEditandoTransaccionCredito(null)}
                   cargando={cargandoAccion}
                 />
                 <div style={{ marginTop: "var(--spacing-6)" }}>
@@ -744,6 +889,13 @@ export default function OperarioPanel() {
                       { key: "id", label: "ID", mono: true },
                       { key: "tipo", label: "Tipo" },
                       { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
+                      columnasAcciones(
+                        (f) => {
+                          setEditandoTransaccionNoCredito(null);
+                          setEditandoTransaccionCredito(f);
+                        },
+                        "transaccion"
+                      ),
                     ]}
                     filas={transaccionesCredito}
                     vacio="Sin créditos registrados en este turno."
@@ -767,10 +919,14 @@ export default function OperarioPanel() {
             {tab === "transacciones" && (
               <>
                 <FormularioTransaccion
+                  key={editandoTransaccionNoCredito ? `editar-${editandoTransaccionNoCredito.id}` : "nuevo"}
                   tipos={tiposNoCredito}
                   clientes={clientes}
                   mostrarCliente={false}
                   onRegistrar={manejarRegistrarTransaccion}
+                  inicial={editandoTransaccionNoCredito}
+                  onActualizar={manejarActualizarTransaccion}
+                  onCancelarEditar={() => setEditandoTransaccionNoCredito(null)}
                   cargando={cargandoAccion}
                 />
                 <div style={{ marginTop: "var(--spacing-6)" }}>
@@ -779,6 +935,13 @@ export default function OperarioPanel() {
                       { key: "id", label: "ID", mono: true },
                       { key: "tipo", label: "Tipo" },
                       { key: "valor", label: "Valor", mono: true, render: (f) => formatMoney(f.valor) },
+                      columnasAcciones(
+                        (f) => {
+                          setEditandoTransaccionCredito(null);
+                          setEditandoTransaccionNoCredito(f);
+                        },
+                        "transaccion"
+                      ),
                     ]}
                     filas={transaccionesNoCredito}
                     vacio="Sin transacciones registradas en este turno."
@@ -794,7 +957,7 @@ export default function OperarioPanel() {
                     <button
                       key={st.key}
                       className={`tab ${subtabOtras === st.key ? "tab--activo" : ""}`}
-                      onClick={() => setSubtabOtras(st.key)}
+                      onClick={() => cambiarSubtab(st.key)}
                     >
                       {st.label}
                     </button>
@@ -826,10 +989,14 @@ export default function OperarioPanel() {
                 ) : subtabOtras === "combustible" ? (
                   <>
                     <FormularioVentaGranel
+                      key={editandoVentaGranel ? `editar-${editandoVentaGranel.id}` : "nuevo"}
                       productos={productosGranelOtra}
                       onRegistrar={(datos) =>
                         manejarRegistrarVentaGranel({ ...datos, isla: Number(otraIsla) })
                       }
+                      inicial={editandoVentaGranel}
+                      onActualizar={manejarActualizarVentaGranel}
+                      onCancelarEditar={() => setEditandoVentaGranel(null)}
                       cargando={cargandoAccion}
                     />
                     <div style={{ marginTop: "var(--spacing-6)" }}>
@@ -843,6 +1010,7 @@ export default function OperarioPanel() {
                               `${formatVol(f.cantidad)} ${unidadGranel(granelUnidadPorCodigo.get(String(f.codigo))).corto}`,
                           },
                           { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
+                          columnasAcciones((f) => setEditandoVentaGranel(f), "ventaGranel"),
                         ]}
                         filas={ventasGranelOtra}
                         vacio="Sin ventas de combustible en esta isla."
@@ -852,10 +1020,14 @@ export default function OperarioPanel() {
                 ) : (
                   <>
                     <FormularioVenta
+                      key={editandoVenta ? `editar-${editandoVenta.id}` : "nuevo"}
                       productos={productosOtra}
                       onRegistrar={(datos) =>
                         manejarRegistrarVenta({ ...datos, isla: Number(otraIsla) })
                       }
+                      inicial={editandoVenta}
+                      onActualizar={manejarActualizarVenta}
+                      onCancelarEditar={() => setEditandoVenta(null)}
                       cargando={cargandoAccion}
                     />
                     <div style={{ marginTop: "var(--spacing-6)" }}>
@@ -864,6 +1036,7 @@ export default function OperarioPanel() {
                           { key: "codigo", label: "Producto" },
                           { key: "cantidad", label: "Cantidad", render: (f) => formatCant(f.cantidad) },
                           { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
+                          columnasAcciones((f) => setEditandoVenta(f), "venta"),
                         ]}
                         filas={ventasOtra}
                         vacio="Sin ventas de complementarios en esta isla."
@@ -1176,6 +1349,19 @@ export default function OperarioPanel() {
           </>
         )}
       </main>
+
+      <ConfirmModal
+        open={Boolean(itemAEliminar)}
+        mensaje={
+          itemAEliminar
+            ? itemAEliminar.tipo === "transaccion"
+              ? `¿Anular la transacción ${itemAEliminar.item.id}? Quedará oculta de las listas pero se conservará en el historial.`
+              : "¿Eliminar este registro? Esta acción no se puede deshacer."
+            : ""
+        }
+        onConfirmar={confirmarEliminacion}
+        onCancelar={() => setItemAEliminar(null)}
+      />
 
       <ResumenTurno
         abierto={resumenAbierto}

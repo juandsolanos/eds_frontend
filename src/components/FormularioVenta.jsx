@@ -1,25 +1,40 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatMoney } from "../utils/format";
 import InputMiles from "./InputMiles";
 
-export default function FormularioVenta({ productos, onRegistrar, cargando }) {
+export default function FormularioVenta({
+  productos,
+  onRegistrar,
+  cargando,
+  inicial = null,
+  onActualizar = null,
+  onCancelarEditar = null,
+}) {
+  const esEdicion = Boolean(inicial);
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [codigo, setCodigo] = useState("");
   const [cantidad, setCantidad] = useState("");
 
-  const tipos = useMemo(
-    () => [...new Set(productos.map((p) => p.tipo))].sort(),
-    [productos]
-  );
+  const tipos = useMemo(() => [...new Set(productos.map((p) => p.tipo))].sort(), [productos]);
 
-  const productosFiltrados = tipoFiltro
-    ? productos.filter((p) => p.tipo === tipoFiltro)
-    : productos;
+  const productosFiltrados = tipoFiltro ? productos.filter((p) => p.tipo === tipoFiltro) : productos;
 
   const productoSeleccionado = productos.find((p) => p.codigo === codigo);
-  const valorEstimado = productoSeleccionado && cantidad
-    ? formatMoney(productoSeleccionado.precio_unitario * Number(cantidad))
-    : null;
+  const valorEstimado =
+    productoSeleccionado && cantidad
+      ? formatMoney(productoSeleccionado.precio_unitario * Number(cantidad))
+      : null;
+
+  useEffect(() => {
+    if (inicial) {
+      setTipoFiltro("");
+      setCodigo(inicial.codigo);
+      setCantidad(String(inicial.cantidad));
+    } else {
+      setCodigo("");
+      setCantidad("");
+    }
+  }, [inicial]);
 
   function limpiar() {
     setCodigo("");
@@ -28,7 +43,13 @@ export default function FormularioVenta({ productos, onRegistrar, cargando }) {
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
-    const ok = await onRegistrar({ codigo, cantidad: Number(cantidad) });
+    const datos = { codigo, cantidad: Number(cantidad) };
+    if (esEdicion) {
+      const ok = await onActualizar({ ...datos, isla: inicial.isla });
+      if (ok) onCancelarEditar?.();
+      return;
+    }
+    const ok = await onRegistrar(datos);
     if (ok) limpiar();
   }
 
@@ -88,9 +109,20 @@ export default function FormularioVenta({ productos, onRegistrar, cargando }) {
           </div>
         )}
 
-        <div className="field field--full">
+        <div className="field field--full modal__acciones">
+          {esEdicion && (
+            <button type="button" className="btn btn--ghost" onClick={onCancelarEditar} disabled={cargando}>
+              Cancelar edición
+            </button>
+          )}
           <button type="submit" className="btn btn--primary" disabled={cargando}>
-            {cargando ? "Registrando..." : "Registrar venta"}
+            {esEdicion
+              ? cargando
+                ? "Guardando..."
+                : "Guardar cambios"
+              : cargando
+                ? "Registrando..."
+                : "Registrar venta"}
           </button>
         </div>
       </div>

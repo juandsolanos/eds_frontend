@@ -7,8 +7,18 @@ import { unidadGranel } from "../utils/format";
 
 const nfMiles = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
 
-export default function FormularioLectura({ mangueras, lecturas, onRegistrar, cargando, productosGranel = [] }) {
+export default function FormularioLectura({
+  mangueras,
+  lecturas,
+  onRegistrar,
+  cargando,
+  productosGranel = [],
+  inicial = null,
+  onActualizar = null,
+  onCancelarEditar = null,
+}) {
   const { token } = useAuth();
+  const esEdicion = Boolean(inicial);
 
   const [mangueraActiva, setMangueraActiva] = useState(null);
   const [lecturaInicial, setLecturaInicial] = useState("");
@@ -24,6 +34,26 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
 
   const mangueraIdsLeidas = new Set((lecturas || []).map((l) => l.manguera_id));
 
+  useEffect(() => {
+    if (inicial) {
+      setMangueraActiva(inicial.manguera_id);
+      setLecturaInicial(String(inicial.lectura_inicial));
+      setLecturaFinal(String(inicial.lectura_final));
+      setFoto(null);
+      setPreviewUrl(null);
+      setErrorFoto(null);
+      setCamaraAbierta(false);
+    } else {
+      setMangueraActiva(null);
+      setLecturaInicial("");
+      setLecturaFinal("");
+      setFoto(null);
+      setPreviewUrl(null);
+      setErrorFoto(null);
+      setCamaraAbierta(false);
+    }
+  }, [inicial]);
+
   function seleccionarManguera(manguera) {
     setMangueraActiva(manguera.id);
     setLecturaInicial(String(manguera.ultima_lectura || 0));
@@ -34,6 +64,10 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
   }
 
   function cancelar() {
+    if (esEdicion) {
+      onCancelarEditar?.();
+      return;
+    }
     setMangueraActiva(null);
     setLecturaInicial("");
     setLecturaFinal("");
@@ -56,35 +90,46 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
     }
     document.addEventListener("keydown", manejarTecla);
     return () => document.removeEventListener("keydown", manejarTecla);
-  }, [mangueraActiva]);
+  }, [mangueraActiva, esEdicion]);
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
     setErrorFoto(null);
 
-    if (!foto) {
+    if (!esEdicion && !foto) {
       setErrorFoto("Debes tomar una foto del medidor con la cámara como evidencia.");
       return;
     }
 
-    setSubiendoFoto(true);
-    let fotoUrl;
-    try {
-      const resultado = await api.subirFotoLectura(token, foto);
-      fotoUrl = resultado.foto_url;
-    } catch (err) {
-      setErrorFoto(err.detail || "No se pudo subir la foto.");
-      setSubiendoFoto(false);
-      return;
-    }
-    setSubiendoFoto(false);
+    let fotoUrl = esEdicion ? inicial.foto_url || "" : "";
 
-    const ok = await onRegistrar({
+    if (foto) {
+      setSubiendoFoto(true);
+      try {
+        const resultado = await api.subirFotoLectura(token, foto);
+        fotoUrl = resultado.foto_url;
+      } catch (err) {
+        setErrorFoto(err.detail || "No se pudo subir la foto.");
+        setSubiendoFoto(false);
+        return;
+      }
+      setSubiendoFoto(false);
+    }
+
+    const datos = {
       manguera_id: mangueraActiva,
       lectura_inicial: Number(parseMiles(String(lecturaInicial))),
       lectura_final: Number(parseMiles(String(lecturaFinal))),
       foto_url: fotoUrl,
-    });
+    };
+
+    if (esEdicion) {
+      const ok = await onActualizar(datos);
+      if (ok) onCancelarEditar?.();
+      return;
+    }
+
+    const ok = await onRegistrar(datos);
     if (ok) cancelar();
   }
 
@@ -126,7 +171,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                   )}
                 </div>
               </div>
-              {!leida && (
+              {!leida && !esEdicion && (
                 <button
                   type="button"
                   className="btn btn--primary btn--sm"
@@ -149,6 +194,7 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
           <div className="modal modal--form" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
               <h3 className="modal__title">
+                {esEdicion ? "Editar lectura — " : ""}
                 Manguera {mangueraSeleccionada.id} &mdash; {mangueraSeleccionada.nombre_combustible || mangueraSeleccionada.codigo_combustible}
               </h3>
               <button
@@ -170,9 +216,10 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                     id="lectura_inicial"
                     step="0.01"
                     value={lecturaInicial}
-                    onChange={() => {}}
-                    readOnly
-                    className="input--readonly"
+                    onChange={setLecturaInicial}
+                    required
+                    className={esEdicion ? "" : "input--readonly"}
+                    readOnly={!esEdicion}
                   />
                 </div>
                 <div className="field">
@@ -198,6 +245,18 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                         disabled={subiendoFoto}
                       >
                         Retomar foto
+                      </button>
+                    </div>
+                  ) : esEdicion && inicial.foto_url ? (
+                    <div className="foto-evidencia">
+                      <img src={inicial.foto_url} className="foto-preview" alt="Evidencia actual" />
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setCamaraAbierta(true)}
+                        disabled={subiendoFoto}
+                      >
+                        Cambiar foto
                       </button>
                     </div>
                   ) : (
@@ -228,7 +287,15 @@ export default function FormularioLectura({ mangueras, lecturas, onRegistrar, ca
                     Cancelar
                   </button>
                   <button type="submit" className="btn btn--primary" disabled={cargando || subiendoFoto}>
-                    {subiendoFoto ? "Subiendo foto..." : cargando ? "Registrando..." : "Registrar lectura"}
+                    {subiendoFoto
+                      ? "Subiendo foto..."
+                      : esEdicion
+                        ? cargando
+                          ? "Guardando..."
+                          : "Guardar cambios"
+                        : cargando
+                          ? "Registrando..."
+                          : "Registrar lectura"}
                   </button>
                 </div>
               </div>

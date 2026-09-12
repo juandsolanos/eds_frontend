@@ -1,16 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatMoney, unidadGranel } from "../utils/format";
 import InputMiles from "./InputMiles";
 
-export default function FormularioVentaGranel({ productos, onRegistrar, cargando }) {
+export default function FormularioVentaGranel({
+  productos,
+  onRegistrar,
+  cargando,
+  inicial = null,
+  onActualizar = null,
+  onCancelarEditar = null,
+}) {
+  const esEdicion = Boolean(inicial);
   const [codigo, setCodigo] = useState("");
   const [cantidad, setCantidad] = useState("");
 
   const productoSeleccionado = productos.find((p) => p.codigo === codigo);
   const unidad = productoSeleccionado ? unidadGranel(productoSeleccionado.unidad) : null;
-  const valorEstimado = productoSeleccionado && cantidad
-    ? formatMoney(productoSeleccionado.precio_unitario * Number(cantidad))
-    : null;
+  const valorEstimado =
+    productoSeleccionado && cantidad
+      ? formatMoney(productoSeleccionado.precio_unitario * Number(cantidad))
+      : null;
+
+  useEffect(() => {
+    if (inicial) {
+      setCodigo(inicial.codigo);
+      setCantidad(String(inicial.cantidad));
+    } else {
+      setCodigo("");
+      setCantidad("");
+    }
+  }, [inicial]);
 
   function limpiar() {
     setCodigo("");
@@ -19,7 +38,13 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
-    const ok = await onRegistrar({ codigo, cantidad: Number(cantidad) });
+    const datos = { codigo, cantidad: Number(cantidad) };
+    if (esEdicion) {
+      const ok = await onActualizar({ ...datos, isla: inicial.isla });
+      if (ok) onCancelarEditar?.();
+      return;
+    }
+    const ok = await onRegistrar(datos);
     if (ok) limpiar();
   }
 
@@ -61,9 +86,20 @@ export default function FormularioVentaGranel({ productos, onRegistrar, cargando
           </div>
         )}
 
-        <div className="field field--full">
+        <div className="field field--full modal__acciones">
+          {esEdicion && (
+            <button type="button" className="btn btn--ghost" onClick={onCancelarEditar} disabled={cargando}>
+              Cancelar edición
+            </button>
+          )}
           <button type="submit" className="btn btn--primary" disabled={cargando}>
-            {cargando ? "Registrando..." : "Registrar venta de combustible"}
+            {esEdicion
+              ? cargando
+                ? "Guardando..."
+                : "Guardar cambios"
+              : cargando
+                ? "Registrando..."
+                : "Registrar venta de combustible"}
           </button>
         </div>
       </div>

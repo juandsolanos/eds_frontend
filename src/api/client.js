@@ -135,6 +135,10 @@ export const api = {
     requestArchivo("/api/lecturas-mangueras/foto", { archivo, token }),
   crearLectura: (token, datos) =>
     request("/api/lecturas-mangueras/", { method: "POST", token, body: datos }),
+  actualizarLectura: (token, id, datos) =>
+    request(`/api/lecturas-mangueras/${id}`, { method: "PUT", token, body: datos }),
+  eliminarLectura: (token, id) =>
+    request(`/api/lecturas-mangueras/${id}`, { method: "DELETE", token }),
   listarLecturas: (token, turnoId, opts) =>
     request(`/api/lecturas-mangueras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
   listarLecturasPorTurno: (token, turnoId, opts) =>
@@ -142,18 +146,37 @@ export const api = {
 
   crearVenta: (token, datos) =>
     request("/api/productos-unidad-ventas/", { method: "POST", token, body: datos }),
+  actualizarVenta: (token, id, datos) =>
+    request(`/api/productos-unidad-ventas/${id}`, { method: "PUT", token, body: datos }),
+  eliminarVenta: (token, id) =>
+    request(`/api/productos-unidad-ventas/${id}`, { method: "DELETE", token }),
   listarVentas: (token, turnoId, opts) =>
     request(`/api/productos-unidad-ventas/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   crearVentaGranel: (token, datos) =>
     request("/api/ventas-granel/", { method: "POST", token, body: datos }),
+  actualizarVentaGranel: (token, id, datos) =>
+    request(`/api/ventas-granel/${id}`, { method: "PUT", token, body: datos }),
+  eliminarVentaGranel: (token, id) =>
+    request(`/api/ventas-granel/${id}`, { method: "DELETE", token }),
   listarVentasGranel: (token, turnoId, opts) =>
     request(`/api/ventas-granel/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
   crearTransaccion: (token, datos) =>
     request("/api/transacciones-financieras/", { method: "POST", token, body: datos }),
+  actualizarTransaccion: (token, id, datos) =>
+    request(`/api/transacciones-financieras/${encodeURIComponent(id)}`, { method: "PUT", token, body: datos }),
+  anularTransaccion: (token, id) =>
+    request(`/api/transacciones-financieras/${encodeURIComponent(id)}`, { method: "DELETE", token }),
   listarTransacciones: (token, turnoId, opts) =>
     request(`/api/transacciones-financieras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
+  listarHistorialTransacciones: (token, transaccionId, opts) =>
+    request(
+      `/api/transacciones-financieras/historial${
+        transaccionId ? `?transaccion_id=${encodeURIComponent(transaccionId)}` : ""
+      }`,
+      { token, ...opts }
+    ),
 
   listarMovimientos: (token, opts) => request("/api/productos-unidad-movimientos/", { token, ...opts }),
   transferirInventario: (token, datos) =>
