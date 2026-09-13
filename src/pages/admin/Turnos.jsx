@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 
@@ -53,6 +53,19 @@ export default function Turnos() {
 
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+
+  // Mapa id -> nombre de operario para mostrar el nombre del responsable
+  // en la tabla (el backend solo devuelve el id). Si el operario ya no
+  // existe en el catálogo, se muestra el id como respaldo.
+  const nombresOperarios = useMemo(
+    () => Object.fromEntries(operarios.map((o) => [o.id, o.nombre || o.id])),
+    [operarios]
+  );
+
+  function nombreResponsable(id) {
+    if (!id) return "Sin asignar";
+    return nombresOperarios[id] || id;
+  }
 
   const cargarTurnos = useCallback(async ({ signal } = {}) => {
     try {
@@ -323,7 +336,7 @@ export default function Turnos() {
                   <td>{t.isla}</td>
                   <td>{new Date(t.inicio_ideal).toLocaleString()}</td>
                   <td>{new Date(t.final_ideal).toLocaleString()}</td>
-                  <td>{t.responsable || "Sin asignar"}</td>
+                  <td>{nombreResponsable(t.responsable)}</td>
                   <td>
                     <span style={{
                       padding: "2px 8px",
