@@ -79,6 +79,34 @@ export default function Snapshots() {
     }
   }
 
+  async function manejarActualizar() {
+    // Recalcula el snapshot releyendo los datos del día y lo guarda
+    // (el backend hace UPSERT: si ya existe, lo actualiza).
+    if (!detalle) return;
+    if (
+      !window.confirm(
+        `¿Releer los datos del ${detalle.fecha} y recalcular su snapshot? Se actualizará el guardado.`
+      )
+    ) {
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    setExito(null);
+    try {
+      const data = await api.cerrarDiaOperativo(token, detalle.fecha);
+      setDetalle(data.datos);
+      setOrigen("guardado");
+      setFecha(data.fecha);
+      setExito(`Snapshot del ${data.fecha} recalculado y actualizado.`);
+      await cargarHistorial();
+    } catch (err) {
+      setError(err.detail);
+    } finally {
+      setCargando(false);
+    }
+  }
+
   async function manejarCerrarDia() {
     if (
       !window.confirm(
@@ -125,12 +153,17 @@ export default function Snapshots() {
 
         {!cargando && detalle && (
           <>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-              {origen === "vivo"
-                ? `Vista previa sin guardar del ${detalle.fecha} (todos los turnos, todas las islas).`
-                : `Snapshot guardado del ${detalle.fecha}.`}
-              {" "}Turnos del día: {detalle.turnos.length}
-            </p>
+            <div style={{ display: "flex", gap: "var(--spacing-3)", alignItems: "center", flexWrap: "wrap" }}>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
+                {origen === "vivo"
+                  ? `Vista previa sin guardar del ${detalle.fecha} (todos los turnos, todas las islas).`
+                  : `Snapshot guardado del ${detalle.fecha}.`}
+                {" "}Turnos del día: {detalle.turnos.length}
+              </p>
+              <button className="btn" onClick={manejarActualizar} disabled={cargando}>
+                Actualizar snapshot
+              </button>
+            </div>
 
             <h4>Transacciones por tipo</h4>
             {detalle.transacciones_por_tipo.length === 0 ? (
