@@ -3,7 +3,6 @@ import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import OperarioPanel from "./pages/OperarioPanel";
 import AdminLayout from "./pages/admin/AdminLayout";
-import Dashboard from "./pages/admin/Dashboard";
 import Catalogos from "./pages/admin/Catalogos";
 import Registros from "./pages/admin/Registros";
 import Inventario from "./pages/admin/Inventario";
@@ -29,8 +28,7 @@ export default function App() {
 
         {esAdministrador ? (
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route index element={<Navigate to="turnos" replace />} />
             <Route path="turnos" element={<Turnos />} />
             <Route path="alertas" element={<Alertas />} />
             <Route path="registros" element={<Registros />} />
