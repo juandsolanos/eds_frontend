@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const NAV_ITEMS = [
   { to: "/admin/turnos", label: "Turnos" },
-  { to: "/admin/registros", label: "Registros" },
+  { to: "/admin/registros", label: "Detalles Turnos" },
   { to: "/admin/snapshots", label: "Snapshots" },
   { to: "/admin/inventario", label: "Inventario" },
   { to: "/admin/alertas", label: "Alertas" },

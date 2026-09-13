@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
@@ -18,6 +18,7 @@ export default function Registros() {
 
   const [productosGranel, setProductosGranel] = useState([]);
   const [mangueras, setMangueras] = useState([]);
+  const [operarios, setOperarios] = useState([]);
   const [error, setError] = useState(null);
 
   const cargarTurnos = useCallback(async ({ signal } = {}) => {
@@ -35,8 +36,21 @@ export default function Registros() {
     cargarTurnos({ signal });
     api.listarProductosGranel(token, undefined, { signal }).then(setProductosGranel).catch(() => {});
     api.listarMangueras(token, undefined, { signal }).then(setMangueras).catch(() => {});
+    api.operarios.listar(token, { signal }).then(setOperarios).catch(() => setOperarios([]));
     return () => ctrl.abort();
   }, [token, cargarTurnos]);
+
+  // Mapa id -> nombre de operario (el backend solo devuelve el id del
+  // responsable). Si el operario ya no existe, se muestra el id.
+  const nombresOperarios = useMemo(
+    () => Object.fromEntries((operarios || []).map((o) => [o.id, o.nombre || o.id])),
+    [operarios]
+  );
+
+  function nombreOperario(id) {
+    if (!id) return "Sin asignar";
+    return nombresOperarios[id] || id;
+  }
 
   async function verDetalle(turno) {
     setTurnoSeleccionado(turno);
@@ -78,7 +92,7 @@ export default function Registros() {
           columnas={[
             { key: "id", label: "Turno", mono: true },
             { key: "isla", label: "Isla" },
-            { key: "responsable", label: "Operario" },
+            { key: "responsable", label: "Operario", render: (t) => nombreOperario(t.responsable) },
             { key: "tiempo_inicio", label: "Inicio", render: (t) => formatoFecha(t.tiempo_inicio) },
             {
               key: "tiempo_final",
@@ -103,7 +117,7 @@ export default function Registros() {
       {turnoSeleccionado && (
         <div className="card">
           <div className="card__header">
-            <h3 className="card__title mono">Detalle de {turnoSeleccionado.id}</h3>
+            <h3 className="card__title mono">Detalle de {turnoSeleccionado.id} · {nombreOperario(turnoSeleccionado.responsable)}</h3>
             <button className="btn btn--ghost" onClick={() => setTurnoSeleccionado(null)}>
               Cerrar
             </button>
