@@ -196,6 +196,16 @@ export default function Snapshots() {
         {!cargando && detalle && (
           <>
             <div style={{ display: "flex", gap: "var(--spacing-3)", alignItems: "center", flexWrap: "wrap" }}>
+              {esSuperadmin && !cerradoDetalle && (
+                <button className="btn" onClick={manejarActualizar} disabled={cargando}>
+                  Actualizar snapshot
+                </button>
+              )}
+              {esSuperadmin && cerradoDetalle && (
+                <button className="btn" onClick={manejarReabrir} disabled={cargando}>
+                  Reabrir día
+                </button>
+              )}
               <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
                 {origen === "vivo"
                   ? `Vista previa sin guardar del ${detalle.fecha} (todos los turnos, todas las islas).`
@@ -206,16 +216,6 @@ export default function Snapshots() {
                 <span style={{ color: "var(--danger)", fontWeight: 700, fontSize: "0.85rem" }}>
                   Día cerrado (edición bloqueada)
                 </span>
-              )}
-              {esSuperadmin && !cerradoDetalle && (
-                <button className="btn" onClick={manejarActualizar} disabled={cargando}>
-                  Actualizar snapshot
-                </button>
-              )}
-              {esSuperadmin && cerradoDetalle && (
-                <button className="btn" onClick={manejarReabrir} disabled={cargando}>
-                  Reabrir día
-                </button>
               )}
             </div>
 
