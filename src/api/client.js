@@ -224,6 +224,10 @@ export const api = {
       body: fecha ? { fecha } : {},
       ...opts,
     }),
+  cerrarDiaLock: (token, fecha, opts) =>
+    request(`/api/snapshots/${fecha}/cerrar`, { method: "POST", token, ...opts }),
+  reabrirDia: (token, fecha, opts) =>
+    request(`/api/snapshots/${fecha}/reabrir`, { method: "POST", token, ...opts }),
 
   // Catálogos (CRUD completo, usado por el panel de administrador)
   islas: crudEndpoints("/api/islas"),

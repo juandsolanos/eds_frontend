@@ -19,12 +19,14 @@ function haceDiasISO(dias) {
 }
 
 export default function Snapshots() {
-  const { token } = useAuth();
+  const { token, usuario } = useAuth();
+  const esSuperadmin = usuario.rol === "superadministrador";
   const [fecha, setFecha] = useState(hoyISO());
   const [desde, setDesde] = useState(haceDiasISO(30));
   const [hasta, setHasta] = useState(hoyISO());
   const [detalle, setDetalle] = useState(null); // SnapshotDatos (vivo o guardado)
   const [origen, setOrigen] = useState(null); // "vivo" | "guardado"
+  const [cerradoDetalle, setCerradoDetalle] = useState(false);
   const [historial, setHistorial] = useState([]);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
@@ -48,6 +50,11 @@ export default function Snapshots() {
     return () => ctrl.abort();
   }, [cargarHistorial]);
 
+  function cerradoEnHistorial(fechaISO) {
+    const fila = historial.find((s) => s.fecha === fechaISO);
+    return fila ? !!fila.cerrado : false;
+  }
+
   async function verVivo() {
     setCargando(true);
     setError(null);
@@ -56,6 +63,7 @@ export default function Snapshots() {
       const data = await api.snapshotVivo(token, fecha);
       setDetalle(data);
       setOrigen("vivo");
+      setCerradoDetalle(cerradoEnHistorial(data.fecha));
     } catch (err) {
       setError(err.detail);
     } finally {
@@ -71,6 +79,7 @@ export default function Snapshots() {
       const data = await api.obtenerSnapshot(token, fechaGuardada);
       setDetalle(data.datos);
       setOrigen("guardado");
+      setCerradoDetalle(!!data.cerrado);
       setFecha(fechaGuardada);
     } catch (err) {
       setError(err.detail);
@@ -97,6 +106,7 @@ export default function Snapshots() {
       const data = await api.cerrarDiaOperativo(token, detalle.fecha);
       setDetalle(data.datos);
       setOrigen("guardado");
+      setCerradoDetalle(!!data.cerrado);
       setFecha(data.fecha);
       setExito(`Snapshot del ${data.fecha} recalculado y actualizado.`);
       await cargarHistorial();
@@ -108,9 +118,11 @@ export default function Snapshots() {
   }
 
   async function manejarCerrarDia() {
+    // Cierra el día: congela el snapshot y bloquea la edición de sus
+    // turnos y movimientos (solo superadmin).
     if (
       !window.confirm(
-        `¿Congelar el resumen del día ${fecha}? Si ya existe, se recalcula y actualiza.`
+        `¿Cerrar el día ${fecha}? No se podrán editar sus turnos, transacciones, lecturas ni ventas, ni recalcular el snapshot.`
       )
     ) {
       return;
@@ -119,10 +131,38 @@ export default function Snapshots() {
     setError(null);
     setExito(null);
     try {
-      const data = await api.cerrarDiaOperativo(token, fecha);
+      const data = await api.cerrarDiaLock(token, fecha);
       setDetalle(data.datos);
       setOrigen("guardado");
-      setExito(`Snapshot del ${data.fecha} guardado.`);
+      setCerradoDetalle(true);
+      setExito(`Día ${data.fecha} cerrado: sus turnos y movimientos quedaron bloqueados.`);
+      await cargarHistorial();
+    } catch (err) {
+      setError(err.detail);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  async function manejarReabrir() {
+    const fechaCierre = detalle ? detalle.fecha : fecha;
+    if (
+      !window.confirm(
+        `¿Reabrir el día ${fechaCierre}? Se volverán a permitir ediciones de sus turnos y movimientos.`
+      )
+    ) {
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    setExito(null);
+    try {
+      const data = await api.reabrirDia(token, fechaCierre);
+      setDetalle(data.datos);
+      setOrigen("guardado");
+      setCerradoDetalle(false);
+      setFecha(data.fecha);
+      setExito(`Día ${data.fecha} reabierto.`);
       await cargarHistorial();
     } catch (err) {
       setError(err.detail);
@@ -141,9 +181,11 @@ export default function Snapshots() {
             <button className="btn" onClick={verVivo} disabled={cargando || !fecha}>
               Ver resumen
             </button>
-            <button className="btn btn--primary" onClick={manejarCerrarDia} disabled={cargando || !fecha}>
-              Cerrar día
-            </button>
+            {esSuperadmin && (
+              <button className="btn btn--primary" onClick={manejarCerrarDia} disabled={cargando || !fecha}>
+                Cerrar día
+              </button>
+            )}
           </div>
         </div>
 
@@ -160,9 +202,21 @@ export default function Snapshots() {
                   : `Snapshot guardado del ${detalle.fecha}.`}
                 {" "}Turnos del día: {detalle.turnos.length}
               </p>
-              <button className="btn" onClick={manejarActualizar} disabled={cargando}>
-                Actualizar snapshot
-              </button>
+              {cerradoDetalle && (
+                <span style={{ color: "var(--danger)", fontWeight: 700, fontSize: "0.85rem" }}>
+                  Día cerrado (edición bloqueada)
+                </span>
+              )}
+              {esSuperadmin && !cerradoDetalle && (
+                <button className="btn" onClick={manejarActualizar} disabled={cargando}>
+                  Actualizar snapshot
+                </button>
+              )}
+              {esSuperadmin && cerradoDetalle && (
+                <button className="btn" onClick={manejarReabrir} disabled={cargando}>
+                  Reabrir día
+                </button>
+              )}
             </div>
 
             <h4>Transacciones por tipo</h4>
@@ -279,6 +333,7 @@ export default function Snapshots() {
             <thead>
               <tr>
                 <th>Fecha</th>
+                <th>Estado</th>
                 <th>Total combustible</th>
                 <th>Mangueras</th>
                 <th>Tipos transacción</th>
@@ -290,6 +345,9 @@ export default function Snapshots() {
               {historial.map((s) => (
                 <tr key={s.fecha}>
                   <td className="mono">{s.fecha}</td>
+                  <td style={{ color: s.cerrado ? "var(--danger)" : "var(--success)", fontWeight: 600 }}>
+                    {s.cerrado ? "Cerrado" : "Abierto"}
+                  </td>
                   <td className="mono">
                     {formatVol(s.total_combustible_galones)} gal ·{" "}
                     {formatMoney(s.total_combustible_valor)}
