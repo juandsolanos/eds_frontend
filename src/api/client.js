@@ -235,13 +235,6 @@ export const api = {
       body: { tipo, valor },
       ...opts,
     }),
-  fijarValidadoFisico: (token, fecha, valor, opts) =>
-    request(`/api/snapshots/${fecha}/validado-fisico`, {
-      method: "PUT",
-      token,
-      body: { valor },
-      ...opts,
-    }),
 
   // Catálogos (CRUD completo, usado por el panel de administrador)
   islas: crudEndpoints("/api/islas"),

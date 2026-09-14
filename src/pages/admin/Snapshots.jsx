@@ -29,7 +29,6 @@ export default function Snapshots() {
   const [origen, setOrigen] = useState(null); // "vivo" | "guardado"
   const [cerradoDetalle, setCerradoDetalle] = useState(false);
   const [validacionesInput, setValidacionesInput] = useState({});
-  const [validadoFisicoInput, setValidadoFisicoInput] = useState("");
   const [historial, setHistorial] = useState([]);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
@@ -174,41 +173,22 @@ export default function Snapshots() {
     }
   }
 
-  async function manejarFijarValidadoFisico(e) {
-    e.preventDefault();
-    if (!detalle) return;
-    const valor = Number(validadoFisicoInput);
-    if (validadoFisicoInput === "" || Number.isNaN(valor)) {
-      setError("El validado en físico debe ser un número.");
-      return;
-    }
-    setCargando(true);
-    setError(null);
-    setExito(null);
-    try {
-      const data = await api.fijarValidadoFisico(token, detalle.fecha, valor);
-      setDetalle(data.datos);
-      setOrigen("guardado");
-      setCerradoDetalle(!!data.cerrado);
-      setValidadoFisicoInput("");
-      setExito(`Validado en físico del ${data.fecha} guardado.`);
-      await cargarHistorial();
-    } catch (err) {
-      setError(err.detail);
-    } finally {
-      setCargando(false);
-    }
+  // Efectivo según planillas: suma del valor de caja_fuerte + caja_facil.
+  // Validado en físico: suma de las validaciones fijadas en esas dos cajas.
+  const TIPOS_PLANILLA = ["caja_fuerte", "caja_facil"];
+
+  function efectivoSegunPlanillas() {
+    if (!detalle) return 0;
+    return (detalle.transacciones_por_tipo || [])
+      .filter((t) => TIPOS_PLANILLA.includes(t.tipo))
+      .reduce((acc, t) => acc + Number(t.valor_total || 0), 0);
   }
 
-  // Suma de las validaciones fijadas en los tipos de categoría 'efectivo'.
-  function validadoPorSistema() {
+  function validadoEnFisico() {
     if (!detalle) return null;
     const validaciones = detalle.validaciones || {};
-    const tiposEfectivo = (detalle.transacciones_por_tipo || [])
-      .filter((t) => t.categoria === "efectivo")
-      .map((t) => t.tipo);
-    if (!tiposEfectivo.some((tipo) => validaciones[tipo] !== undefined)) return null;
-    return tiposEfectivo.reduce((acc, tipo) => acc + Number(validaciones[tipo]?.valor || 0), 0);
+    if (!TIPOS_PLANILLA.some((tipo) => validaciones[tipo] !== undefined)) return null;
+    return TIPOS_PLANILLA.reduce((acc, tipo) => acc + Number(validaciones[tipo]?.valor || 0), 0);
   }
 
   async function manejarFijarValidacion(tipo) {
@@ -415,10 +395,9 @@ export default function Snapshots() {
 
             <h4>Efectivo esperado</h4>
             {(() => {
-              const sistema = validadoPorSistema();
-              const fisico = detalle.validado_fisico ? Number(detalle.validado_fisico.valor) : null;
+              const planillas = efectivoSegunPlanillas();
+              const fisico = validadoEnFisico();
               const diferencia = fisico === null ? null : detalle.efectivo_esperado - fisico;
-              const puedeDiligenciar = esAdmin && origen === "guardado" && !cerradoDetalle;
               return (
                 <>
                   <table className="table">
@@ -440,48 +419,16 @@ export default function Snapshots() {
                         </td>
                       </tr>
                       <tr>
-                        <td>Validado por Sistema (validaciones en tipos efectivo)</td>
-                        <td className="mono">
-                          {sistema === null ? (
-                            <span style={{ color: "var(--text-muted)" }}>sin validar</span>
-                          ) : (
-                            formatMoney(sistema)
-                          )}
-                        </td>
+                        <td>Efectivo según planillas (caja fuerte + caja fácil)</td>
+                        <td className="mono">{formatMoney(planillas)}</td>
                       </tr>
                       <tr>
-                        <td>Validado en físico</td>
-                        <td>
+                        <td>Validado en físico (validaciones de esas cajas)</td>
+                        <td className="mono">
                           {fisico === null ? (
                             <span style={{ color: "var(--text-muted)" }}>sin diligenciar</span>
                           ) : (
-                            <span className="mono">
-                              {formatMoney(fisico)}{" "}
-                              <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                                por {detalle.validado_fisico.por || "—"}
-                                {detalle.validado_fisico.en
-                                  ? ` · ${detalle.validado_fisico.en.replace("T", " ")}`
-                                  : ""}
-                              </span>
-                            </span>
-                          )}
-                          {puedeDiligenciar && (
-                            <form
-                              onSubmit={manejarFijarValidadoFisico}
-                              style={{ display: "inline-flex", gap: 4, marginLeft: 8 }}
-                            >
-                              <input
-                                type="number"
-                                step="any"
-                                placeholder="Valor..."
-                                value={validadoFisicoInput}
-                                onChange={(e) => setValidadoFisicoInput(e.target.value)}
-                                style={{ maxWidth: 130 }}
-                              />
-                              <button className="btn" type="submit" disabled={cargando || validadoFisicoInput === ""}>
-                                Guardar
-                              </button>
-                            </form>
+                            formatMoney(fisico)
                           )}
                         </td>
                       </tr>
