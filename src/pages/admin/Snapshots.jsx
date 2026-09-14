@@ -28,7 +28,7 @@ export default function Snapshots() {
   const [detalle, setDetalle] = useState(null); // SnapshotDatos (vivo o guardado)
   const [origen, setOrigen] = useState(null); // "vivo" | "guardado"
   const [cerradoDetalle, setCerradoDetalle] = useState(false);
-  const [valorValidacion, setValorValidacion] = useState("");
+  const [validacionesInput, setValidacionesInput] = useState({});
   const [historial, setHistorial] = useState([]);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
@@ -173,11 +173,10 @@ export default function Snapshots() {
     }
   }
 
-  async function manejarFijarValidacion(e) {
-    e.preventDefault();
+  async function manejarFijarValidacion(tipo) {
     if (!detalle) return;
-    const valor = Number(valorValidacion);
-    if (Number.isNaN(valor)) {
+    const valor = Number(validacionesInput[tipo]);
+    if (validacionesInput[tipo] === undefined || validacionesInput[tipo] === "" || Number.isNaN(valor)) {
       setError("El valor de validación debe ser un número.");
       return;
     }
@@ -185,12 +184,12 @@ export default function Snapshots() {
     setError(null);
     setExito(null);
     try {
-      const data = await api.fijarValidacion(token, detalle.fecha, valor);
+      const data = await api.fijarValidacion(token, detalle.fecha, tipo, valor);
       setDetalle(data.datos);
       setOrigen("guardado");
       setCerradoDetalle(!!data.cerrado);
-      setValorValidacion("");
-      setExito(`Valor de validación del ${data.fecha} guardado.`);
+      setValidacionesInput((prev) => ({ ...prev, [tipo]: "" }));
+      setExito(`Validación de ${tipo} guardada.`);
       await cargarHistorial();
     } catch (err) {
       setError(err.detail);
@@ -257,54 +256,58 @@ export default function Snapshots() {
                     <th>Tipo</th>
                     <th>Cantidad</th>
                     <th>Valor total</th>
+                    <th>Validación</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {detalle.transacciones_por_tipo.map((t) => (
-                    <tr key={t.tipo}>
-                      <td>
-                        {t.nombre || t.tipo}{" "}
-                        <span style={{ color: t.signo === 1 ? "var(--success)" : "var(--danger)" }}>
-                          ({t.signo === 1 ? "+" : "-"})
-                        </span>
-                      </td>
-                      <td className="mono">{formatCant(t.cantidad)}</td>
-                      <td className="mono">{formatMoney(t.valor_total)}</td>
-                    </tr>
-                  ))}
+                  {detalle.transacciones_por_tipo.map((t) => {
+                    const validacion = (detalle.validaciones || {})[t.tipo];
+                    const puedeValidar = esAdmin && origen === "guardado" && !cerradoDetalle;
+                    return (
+                      <tr key={t.tipo}>
+                        <td>
+                          {t.nombre || t.tipo}{" "}
+                          <span style={{ color: t.signo === 1 ? "var(--success)" : "var(--danger)" }}>
+                            ({t.signo === 1 ? "+" : "-"})
+                          </span>
+                        </td>
+                        <td className="mono">{formatCant(t.cantidad)}</td>
+                        <td className="mono">{formatMoney(t.valor_total)}</td>
+                        <td>
+                          {validacion ? (
+                            <span className="mono" title={`Fijado por ${validacion.por || "—"}${validacion.en ? ` · ${validacion.en.replace("T", " ")}` : ""}`}>
+                              {formatMoney(validacion.valor)}
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)" }}>—</span>
+                          )}
+                          {puedeValidar && (
+                            <span style={{ display: "inline-flex", gap: 4, marginLeft: 8 }}>
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder="Valor..."
+                                value={validacionesInput[t.tipo] ?? ""}
+                                onChange={(e) =>
+                                  setValidacionesInput((prev) => ({ ...prev, [t.tipo]: e.target.value }))
+                                }
+                                style={{ maxWidth: 110 }}
+                              />
+                              <button
+                                className="btn"
+                                onClick={() => manejarFijarValidacion(t.tipo)}
+                                disabled={cargando || (validacionesInput[t.tipo] ?? "") === ""}
+                              >
+                                Guardar
+                              </button>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
-            )}
-
-            <h4>Valor de validación</h4>
-            {detalle.valor_validacion ? (
-              <p style={{ fontSize: "0.9rem" }}>
-                <strong className="mono">{formatMoney(detalle.valor_validacion.valor)}</strong>{" "}
-                <span style={{ color: "var(--text-muted)" }}>
-                  fijado por {detalle.valor_validacion.por || "—"}
-                  {detalle.valor_validacion.en ? ` · ${detalle.valor_validacion.en.replace("T", " ")}` : ""}
-                </span>
-              </p>
-            ) : (
-              <div className="empty-state">Sin valor de validación para este día.</div>
-            )}
-            {esAdmin && origen === "guardado" && !cerradoDetalle && (
-              <form
-                onSubmit={manejarFijarValidacion}
-                style={{ display: "flex", gap: "var(--spacing-2)", alignItems: "center", marginTop: "var(--spacing-2)" }}
-              >
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="Valor de validación..."
-                  value={valorValidacion}
-                  onChange={(e) => setValorValidacion(e.target.value)}
-                  style={{ maxWidth: 220 }}
-                />
-                <button className="btn" type="submit" disabled={cargando || valorValidacion === ""}>
-                  Guardar validación
-                </button>
-              </form>
             )}
 
             <h4>Lecturas por manguera</h4>

@@ -228,11 +228,11 @@ export const api = {
     request(`/api/snapshots/${fecha}/cerrar`, { method: "POST", token, ...opts }),
   reabrirDia: (token, fecha, opts) =>
     request(`/api/snapshots/${fecha}/reabrir`, { method: "POST", token, ...opts }),
-  fijarValidacion: (token, fecha, valor, opts) =>
+  fijarValidacion: (token, fecha, tipo, valor, opts) =>
     request(`/api/snapshots/${fecha}/validacion`, {
       method: "PUT",
       token,
-      body: { valor },
+      body: { tipo, valor },
       ...opts,
     }),
 
