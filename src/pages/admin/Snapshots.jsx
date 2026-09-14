@@ -29,6 +29,7 @@ export default function Snapshots() {
   const [origen, setOrigen] = useState(null); // "vivo" | "guardado"
   const [cerradoDetalle, setCerradoDetalle] = useState(false);
   const [validacionesInput, setValidacionesInput] = useState({});
+  const [validadoFisicoInput, setValidadoFisicoInput] = useState("");
   const [historial, setHistorial] = useState([]);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
@@ -171,6 +172,43 @@ export default function Snapshots() {
     } finally {
       setCargando(false);
     }
+  }
+
+  async function manejarFijarValidadoFisico(e) {
+    e.preventDefault();
+    if (!detalle) return;
+    const valor = Number(validadoFisicoInput);
+    if (validadoFisicoInput === "" || Number.isNaN(valor)) {
+      setError("El validado en físico debe ser un número.");
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    setExito(null);
+    try {
+      const data = await api.fijarValidadoFisico(token, detalle.fecha, valor);
+      setDetalle(data.datos);
+      setOrigen("guardado");
+      setCerradoDetalle(!!data.cerrado);
+      setValidadoFisicoInput("");
+      setExito(`Validado en físico del ${data.fecha} guardado.`);
+      await cargarHistorial();
+    } catch (err) {
+      setError(err.detail);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  // Suma de las validaciones fijadas en los tipos de categoría 'efectivo'.
+  function validadoPorSistema() {
+    if (!detalle) return null;
+    const validaciones = detalle.validaciones || {};
+    const tiposEfectivo = (detalle.transacciones_por_tipo || [])
+      .filter((t) => t.categoria === "efectivo")
+      .map((t) => t.tipo);
+    if (!tiposEfectivo.some((tipo) => validaciones[tipo] !== undefined)) return null;
+    return tiposEfectivo.reduce((acc, tipo) => acc + Number(validaciones[tipo]?.valor || 0), 0);
   }
 
   async function manejarFijarValidacion(tipo) {
@@ -374,6 +412,103 @@ export default function Snapshots() {
                 </tbody>
               </table>
             )}
+
+            <h4>Efectivo esperado</h4>
+            {(() => {
+              const sistema = validadoPorSistema();
+              const fisico = detalle.validado_fisico ? Number(detalle.validado_fisico.valor) : null;
+              const diferencia = fisico === null ? null : detalle.efectivo_esperado - fisico;
+              const puedeDiligenciar = esAdmin && origen === "guardado" && !cerradoDetalle;
+              return (
+                <>
+                  <table className="table">
+                    <tbody>
+                      <tr>
+                        <td>Mangueras + Complementarios − Consumos = Total ventas</td>
+                        <td className="mono">
+                          {formatMoney(detalle.ventas_mangueras_valor)} +{" "}
+                          {formatMoney(detalle.ventas_complementarios_valor)} −{" "}
+                          {formatMoney(detalle.consumos_valor)} ={" "}
+                          <strong>{formatMoney(detalle.total_ventas)}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Total ventas − Créditos = Efectivo esperado</td>
+                        <td className="mono">
+                          {formatMoney(detalle.total_ventas)} − {formatMoney(detalle.creditos_valor)} ={" "}
+                          <strong>{formatMoney(detalle.efectivo_esperado)}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Validado por Sistema (validaciones en tipos efectivo)</td>
+                        <td className="mono">
+                          {sistema === null ? (
+                            <span style={{ color: "var(--text-muted)" }}>sin validar</span>
+                          ) : (
+                            formatMoney(sistema)
+                          )}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Validado en físico</td>
+                        <td>
+                          {fisico === null ? (
+                            <span style={{ color: "var(--text-muted)" }}>sin diligenciar</span>
+                          ) : (
+                            <span className="mono">
+                              {formatMoney(fisico)}{" "}
+                              <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                                por {detalle.validado_fisico.por || "—"}
+                                {detalle.validado_fisico.en
+                                  ? ` · ${detalle.validado_fisico.en.replace("T", " ")}`
+                                  : ""}
+                              </span>
+                            </span>
+                          )}
+                          {puedeDiligenciar && (
+                            <form
+                              onSubmit={manejarFijarValidadoFisico}
+                              style={{ display: "inline-flex", gap: 4, marginLeft: 8 }}
+                            >
+                              <input
+                                type="number"
+                                step="any"
+                                placeholder="Valor..."
+                                value={validadoFisicoInput}
+                                onChange={(e) => setValidadoFisicoInput(e.target.value)}
+                                style={{ maxWidth: 130 }}
+                              />
+                              <button className="btn" type="submit" disabled={cargando || validadoFisicoInput === ""}>
+                                Guardar
+                              </button>
+                            </form>
+                          )}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>Diferencia (Esperado − Físico)</strong>
+                        </td>
+                        <td
+                          className="mono"
+                          style={{
+                            color:
+                              diferencia === null
+                                ? "var(--text-muted)"
+                                : diferencia === 0
+                                  ? "var(--success)"
+                                  : "var(--danger)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {diferencia === null ? "—" : formatMoney(diferencia)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </>
+              );
+            })()}
           </>
         )}
       </div>
