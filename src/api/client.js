@@ -228,6 +228,13 @@ export const api = {
     request(`/api/snapshots/${fecha}/cerrar`, { method: "POST", token, ...opts }),
   reabrirDia: (token, fecha, opts) =>
     request(`/api/snapshots/${fecha}/reabrir`, { method: "POST", token, ...opts }),
+  fijarValidacion: (token, fecha, valor, opts) =>
+    request(`/api/snapshots/${fecha}/validacion`, {
+      method: "PUT",
+      token,
+      body: { valor },
+      ...opts,
+    }),
 
   // Catálogos (CRUD completo, usado por el panel de administrador)
   islas: crudEndpoints("/api/islas"),

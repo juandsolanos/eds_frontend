@@ -21,12 +21,14 @@ function haceDiasISO(dias) {
 export default function Snapshots() {
   const { token, usuario } = useAuth();
   const esSuperadmin = usuario.rol === "superadministrador";
+  const esAdmin = ["administrador", "superadministrador"].includes(usuario.rol);
   const [fecha, setFecha] = useState(hoyISO());
   const [desde, setDesde] = useState(haceDiasISO(30));
   const [hasta, setHasta] = useState(hoyISO());
   const [detalle, setDetalle] = useState(null); // SnapshotDatos (vivo o guardado)
   const [origen, setOrigen] = useState(null); // "vivo" | "guardado"
   const [cerradoDetalle, setCerradoDetalle] = useState(false);
+  const [valorValidacion, setValorValidacion] = useState("");
   const [historial, setHistorial] = useState([]);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
@@ -171,6 +173,32 @@ export default function Snapshots() {
     }
   }
 
+  async function manejarFijarValidacion(e) {
+    e.preventDefault();
+    if (!detalle) return;
+    const valor = Number(valorValidacion);
+    if (Number.isNaN(valor)) {
+      setError("El valor de validación debe ser un número.");
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    setExito(null);
+    try {
+      const data = await api.fijarValidacion(token, detalle.fecha, valor);
+      setDetalle(data.datos);
+      setOrigen("guardado");
+      setCerradoDetalle(!!data.cerrado);
+      setValorValidacion("");
+      setExito(`Valor de validación del ${data.fecha} guardado.`);
+      await cargarHistorial();
+    } catch (err) {
+      setError(err.detail);
+    } finally {
+      setCargando(false);
+    }
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
       <div className="card">
@@ -246,6 +274,37 @@ export default function Snapshots() {
                   ))}
                 </tbody>
               </table>
+            )}
+
+            <h4>Valor de validación</h4>
+            {detalle.valor_validacion ? (
+              <p style={{ fontSize: "0.9rem" }}>
+                <strong className="mono">{formatMoney(detalle.valor_validacion.valor)}</strong>{" "}
+                <span style={{ color: "var(--text-muted)" }}>
+                  fijado por {detalle.valor_validacion.por || "—"}
+                  {detalle.valor_validacion.en ? ` · ${detalle.valor_validacion.en.replace("T", " ")}` : ""}
+                </span>
+              </p>
+            ) : (
+              <div className="empty-state">Sin valor de validación para este día.</div>
+            )}
+            {esAdmin && origen === "guardado" && !cerradoDetalle && (
+              <form
+                onSubmit={manejarFijarValidacion}
+                style={{ display: "flex", gap: "var(--spacing-2)", alignItems: "center", marginTop: "var(--spacing-2)" }}
+              >
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="Valor de validación..."
+                  value={valorValidacion}
+                  onChange={(e) => setValorValidacion(e.target.value)}
+                  style={{ maxWidth: 220 }}
+                />
+                <button className="btn" type="submit" disabled={cargando || valorValidacion === ""}>
+                  Guardar validación
+                </button>
+              </form>
             )}
 
             <h4>Lecturas por manguera</h4>
