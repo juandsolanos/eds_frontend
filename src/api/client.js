@@ -235,6 +235,8 @@ export const api = {
       body: { tipo, valor },
       ...opts,
     }),
+  cargarValidadoExcel: (token, fecha, archivo, opts) =>
+    requestArchivo(`/api/snapshots/${fecha}/validado-excel`, { archivo, token, ...opts }),
 
   // Catálogos (CRUD completo, usado por el panel de administrador)
   islas: crudEndpoints("/api/islas"),

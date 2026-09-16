@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { formatMoney, formatVol, formatCant } from "../../utils/format";
@@ -30,6 +30,7 @@ export default function Snapshots() {
   const [cerradoDetalle, setCerradoDetalle] = useState(false);
   const [validacionesInput, setValidacionesInput] = useState({});
   const [historial, setHistorial] = useState([]);
+  const excelRef = useRef(null);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
   const [cargando, setCargando] = useState(false);
@@ -216,6 +217,36 @@ export default function Snapshots() {
     }
   }
 
+  async function manejarCargarExcel(e) {
+    e.preventDefault();
+    if (!detalle) return;
+    const archivo = excelRef.current?.files?.[0];
+    if (!archivo) {
+      setError("Selecciona un archivo Excel (.xlsx).");
+      return;
+    }
+    setCargando(true);
+    setError(null);
+    setExito(null);
+    try {
+      const data = await api.cargarValidadoExcel(token, detalle.fecha, archivo);
+      setDetalle(data.snapshot.datos);
+      setOrigen("guardado");
+      setCerradoDetalle(!!data.snapshot.cerrado);
+      if (excelRef.current) excelRef.current.value = "";
+      const extra =
+        data.no_reconocidos.length > 0
+          ? ` No reconocidas: ${data.no_reconocidos.join(", ")}.`
+          : "";
+      setExito(`Excel cargado: ${data.guardados} tipos actualizados.${extra}`);
+      await cargarHistorial();
+    } catch (err) {
+      setError(err.detail);
+    } finally {
+      setCargando(false);
+    }
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
       <div className="card">
@@ -251,6 +282,18 @@ export default function Snapshots() {
                   Reabrir día
                 </button>
               )}
+              {esAdmin && origen === "guardado" && !cerradoDetalle && (
+                <form
+                  onSubmit={manejarCargarExcel}
+                  style={{ display: "inline-flex", gap: 4, alignItems: "center" }}
+                  title="Hoja 'data' con DESCRIPCION, CANTIDAD y VALOR TOTAL"
+                >
+                  <input ref={excelRef} type="file" accept=".xlsx" style={{ maxWidth: 200 }} />
+                  <button className="btn" type="submit" disabled={cargando}>
+                    Cargar Excel
+                  </button>
+                </form>
+              )}
               <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
                 {origen === "vivo"
                   ? `Vista previa sin guardar del ${detalle.fecha} (todos los turnos, todas las islas).`
@@ -274,12 +317,17 @@ export default function Snapshots() {
                     <th>Tipo</th>
                     <th>Cantidad</th>
                     <th>Valor total</th>
-                    <th>Validación</th>
+                    <th>Ajuste</th>
+                    <th>Validado</th>
+                    <th>Diferencia</th>
                   </tr>
                 </thead>
                 <tbody>
                   {detalle.transacciones_por_tipo.map((t) => {
                     const validacion = (detalle.validaciones || {})[t.tipo];
+                    const validadoExcel = (detalle.validado_excel || {})[t.tipo];
+                    const diferenciaExcel =
+                      validadoExcel === undefined ? null : validadoExcel.valor_total - t.valor_total;
                     const puedeValidar = esAdmin && origen === "guardado" && !cerradoDetalle;
                     return (
                       <tr key={t.tipo}>
@@ -320,6 +368,30 @@ export default function Snapshots() {
                               </button>
                             </span>
                           )}
+                        </td>
+                        <td className="mono">
+                          {validadoExcel ? (
+                            <span title={validadoExcel.descripcion || t.tipo}>
+                              {formatMoney(validadoExcel.valor_total)}
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)" }}>—</span>
+                          )}
+                        </td>
+                        <td
+                          className="mono"
+                          style={{
+                            color:
+                              diferenciaExcel === null
+                                ? "var(--text-muted)"
+                                : diferenciaExcel === 0
+                                  ? "var(--success)"
+                                  : "var(--danger)",
+                            fontWeight: diferenciaExcel === null ? 400 : 700,
+                          }}
+                          title={diferenciaExcel === null ? "" : "Validado (Excel) − Sistema"}
+                        >
+                          {diferenciaExcel === null ? "—" : formatMoney(diferenciaExcel)}
                         </td>
                       </tr>
                     );
