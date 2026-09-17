@@ -15,6 +15,7 @@ export default function FormularioTransaccion({
   const [tipo, setTipo] = useState(tipos.length > 0 ? tipos[0].id : "");
   const [valor, setValor] = useState("");
   const [clienteId, setClienteId] = useState("");
+  const [comentarios, setComentarios] = useState("");
 
   const clientesFiltrados = mostrarCliente
     ? (clientes || []).filter(
@@ -29,10 +30,12 @@ export default function FormularioTransaccion({
       setTipo(String(inicial.tipo));
       setValor(String(inicial.valor));
       setClienteId(inicial.cliente_id != null ? String(inicial.cliente_id) : "");
+      setComentarios("");
     } else {
       setTipo(tipos.length > 0 ? tipos[0].id : "");
       setValor("");
       setClienteId("");
+      setComentarios("");
     }
   }, [inicial]);
 
@@ -46,6 +49,7 @@ export default function FormularioTransaccion({
   function limpiar() {
     setValor("");
     setClienteId("");
+    setComentarios("");
   }
 
   async function manejarSubmit(evento) {
@@ -54,6 +58,7 @@ export default function FormularioTransaccion({
       tipo,
       valor: Number(valor),
       cliente_id: mostrarCliente && clienteId ? Number(clienteId) : null,
+      comentarios: comentarios.trim() ? comentarios.trim() : null,
     };
     if (esEdicion) {
       const ok = await onActualizar(datos);
@@ -115,6 +120,17 @@ export default function FormularioTransaccion({
             )}
           </div>
         )}
+
+        <div className="field field--full">
+          <label htmlFor="comentarios_transaccion">Comentarios (opcional)</label>
+          <textarea
+            id="comentarios_transaccion"
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+            rows={2}
+            placeholder="Opcional: quedará en la trazabilidad..."
+          />
+        </div>
 
         <div className="field field--full modal__acciones">
           {esEdicion && (

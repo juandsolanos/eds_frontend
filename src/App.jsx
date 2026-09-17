@@ -19,17 +19,20 @@ export default function App() {
 
   const esAdministrador = ["administrador", "superadministrador"].includes(usuario.rol);
   const esSuperadmin = usuario.rol === "superadministrador";
+  const esOperario = usuario.rol === "operario";
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Cualquier usuario autenticado con operario_id puede usar el panel de operación */}
-        <Route path="/operar" element={<OperarioPanel />} />
+        {/* Operar turnos requiere credenciales de operario: los
+            administradores editan turnos puntuales desde Detalles Turnos */}
+        {esOperario ? <Route path="/operar" element={<OperarioPanel />} /> : null}
 
         {esAdministrador ? (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="turnos" replace />} />
             <Route path="turnos" element={<Turnos />} />
+            <Route path="turnos/:turnoId/editar" element={<OperarioPanel />} />
             <Route path="alertas" element={<Alertas />} />
             <Route path="registros" element={<Registros />} />
             <Route path="snapshots" element={<Snapshots />} />
@@ -42,7 +45,7 @@ export default function App() {
 
         <Route
           path="*"
-          element={<Navigate to={esAdministrador ? "/admin" : "/operar"} replace />}
+          element={<Navigate to={esAdministrador ? "/admin" : esOperario ? "/operar" : "/admin"} replace />}
         />
       </Routes>
     </BrowserRouter>

@@ -137,8 +137,12 @@ export const api = {
     request("/api/lecturas-mangueras/", { method: "POST", token, body: datos }),
   actualizarLectura: (token, id, datos) =>
     request(`/api/lecturas-mangueras/${id}`, { method: "PUT", token, body: datos }),
-  eliminarLectura: (token, id) =>
-    request(`/api/lecturas-mangueras/${id}`, { method: "DELETE", token }),
+  eliminarLectura: (token, id, comentarios) =>
+    request(`/api/lecturas-mangueras/${id}`, {
+      method: "DELETE",
+      token,
+      body: comentarios ? { comentarios } : {},
+    }),
   listarLecturas: (token, turnoId, opts) =>
     request(`/api/lecturas-mangueras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
   listarLecturasPorTurno: (token, turnoId, opts) =>
@@ -148,8 +152,12 @@ export const api = {
     request("/api/productos-unidad-ventas/", { method: "POST", token, body: datos }),
   actualizarVenta: (token, id, datos) =>
     request(`/api/productos-unidad-ventas/${id}`, { method: "PUT", token, body: datos }),
-  eliminarVenta: (token, id) =>
-    request(`/api/productos-unidad-ventas/${id}`, { method: "DELETE", token }),
+  eliminarVenta: (token, id, comentarios) =>
+    request(`/api/productos-unidad-ventas/${id}`, {
+      method: "DELETE",
+      token,
+      body: comentarios ? { comentarios } : {},
+    }),
   listarVentas: (token, turnoId, opts) =>
     request(`/api/productos-unidad-ventas/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
@@ -157,8 +165,12 @@ export const api = {
     request("/api/ventas-granel/", { method: "POST", token, body: datos }),
   actualizarVentaGranel: (token, id, datos) =>
     request(`/api/ventas-granel/${id}`, { method: "PUT", token, body: datos }),
-  eliminarVentaGranel: (token, id) =>
-    request(`/api/ventas-granel/${id}`, { method: "DELETE", token }),
+  eliminarVentaGranel: (token, id, comentarios) =>
+    request(`/api/ventas-granel/${id}`, {
+      method: "DELETE",
+      token,
+      body: comentarios ? { comentarios } : {},
+    }),
   listarVentasGranel: (token, turnoId, opts) =>
     request(`/api/ventas-granel/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
 
@@ -166,8 +178,12 @@ export const api = {
     request("/api/transacciones-financieras/", { method: "POST", token, body: datos }),
   actualizarTransaccion: (token, id, datos) =>
     request(`/api/transacciones-financieras/${encodeURIComponent(id)}`, { method: "PUT", token, body: datos }),
-  anularTransaccion: (token, id) =>
-    request(`/api/transacciones-financieras/${encodeURIComponent(id)}`, { method: "DELETE", token }),
+  anularTransaccion: (token, id, comentarios) =>
+    request(`/api/transacciones-financieras/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      token,
+      body: comentarios ? { comentarios } : {},
+    }),
   listarTransacciones: (token, turnoId, opts) =>
     request(`/api/transacciones-financieras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
   listarHistorialTransacciones: (token, transaccionId, opts) =>
@@ -177,6 +193,14 @@ export const api = {
       }`,
       { token, ...opts }
     ),
+  listarHistorialMovimientos: (token, { entidad, registroId, turnoId } = {}, opts) => {
+    const params = new URLSearchParams();
+    if (entidad) params.set("entidad", entidad);
+    if (registroId) params.set("registro_id", registroId);
+    if (turnoId) params.set("turno_id", turnoId);
+    const qs = params.toString();
+    return request(`/api/historial-movimientos/${qs ? `?${qs}` : ""}`, { token, ...opts });
+  },
 
   listarMovimientos: (token, opts) => request("/api/productos-unidad-movimientos/", { token, ...opts }),
   transferirInventario: (token, datos) =>

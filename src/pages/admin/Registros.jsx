@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
@@ -10,11 +11,13 @@ function formatoFecha(iso) {
 
 export default function Registros() {
   const { token } = useAuth();
+  const navigate = useNavigate();
 
   const [operarioFiltro, setOperarioFiltro] = useState("");
   const [turnos, setTurnos] = useState([]);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
   const [detalle, setDetalle] = useState({ lecturas: [], ventas: [], transacciones: [] });
+  const [trazabilidad, setTrazabilidad] = useState([]);
 
   const [productosGranel, setProductosGranel] = useState([]);
   const [mangueras, setMangueras] = useState([]);
@@ -55,12 +58,14 @@ export default function Registros() {
   async function verDetalle(turno) {
     setTurnoSeleccionado(turno);
     try {
-      const [lecturas, ventas, transacciones] = await Promise.all([
+      const [lecturas, ventas, transacciones, trazabilidad] = await Promise.all([
         api.listarLecturas(token, turno.id),
         api.listarVentas(token, turno.id),
         api.listarTransacciones(token, turno.id),
+        api.listarHistorialMovimientos(token, { turnoId: turno.id }),
       ]);
       setDetalle({ lecturas, ventas, transacciones });
+      setTrazabilidad(trazabilidad);
     } catch (err) {
       setError(err.detail);
     }
@@ -118,9 +123,23 @@ export default function Registros() {
         <div className="card">
           <div className="card__header">
             <h3 className="card__title mono">Detalle de {turnoSeleccionado.id} · {nombreOperario(turnoSeleccionado.responsable)}</h3>
-            <button className="btn btn--ghost" onClick={() => setTurnoSeleccionado(null)}>
-              Cerrar
-            </button>
+            <div style={{ display: "flex", gap: "var(--spacing-2)" }}>
+              {turnoSeleccionado.estado === "abierto" ? (
+                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", alignSelf: "center" }}>
+                  En operación: no editable
+                </span>
+              ) : (
+                <button
+                  className="btn btn--primary"
+                  onClick={() => navigate(`/admin/turnos/${encodeURIComponent(turnoSeleccionado.id)}/editar`)}
+                >
+                  Editar turno
+                </button>
+              )}
+              <button className="btn btn--ghost" onClick={() => setTurnoSeleccionado(null)}>
+                Cerrar
+              </button>
+            </div>
           </div>
 
           <h4 style={{ color: "var(--text-muted)", fontWeight: 500, fontSize: "0.85rem" }}>
@@ -177,6 +196,34 @@ export default function Registros() {
             ]}
             filas={detalle.transacciones}
             vacio="Sin transacciones en este turno."
+          />
+
+          <h4 style={{ color: "var(--text-muted)", fontWeight: 500, fontSize: "0.85rem", marginTop: "var(--spacing-6)" }}>
+            TRAZABILIDAD
+          </h4>
+          <RegistrosTabla
+            columnas={[
+              {
+                key: "tiempo",
+                label: "Fecha",
+                render: (f) => (f.tiempo ? formatoFecha(f.tiempo) : "—"),
+              },
+              { key: "entidad", label: "Operación" },
+              { key: "registro_id", label: "Registro", mono: true },
+              { key: "accion", label: "Acción" },
+              {
+                key: "actor",
+                label: "Quién",
+                render: (f) => `${f.actor_tipo === "administrador" ? "Admin" : "Operario"} ${f.actor_id || ""}`,
+              },
+              {
+                key: "comentarios",
+                label: "Comentarios",
+                render: (f) => f.comentarios || "—",
+              },
+            ]}
+            filas={trazabilidad}
+            vacio="Sin movimientos registrados con trazabilidad en este turno."
           />
         </div>
       )}

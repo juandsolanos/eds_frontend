@@ -14,6 +14,7 @@ export default function FormularioVenta({
   const [tipoFiltro, setTipoFiltro] = useState("");
   const [codigo, setCodigo] = useState("");
   const [cantidad, setCantidad] = useState("");
+  const [comentarios, setComentarios] = useState("");
 
   const tipos = useMemo(() => [...new Set(productos.map((p) => p.tipo))].sort(), [productos]);
 
@@ -30,20 +31,27 @@ export default function FormularioVenta({
       setTipoFiltro("");
       setCodigo(inicial.codigo);
       setCantidad(String(inicial.cantidad));
+      setComentarios("");
     } else {
       setCodigo("");
       setCantidad("");
+      setComentarios("");
     }
   }, [inicial]);
 
   function limpiar() {
     setCodigo("");
     setCantidad("");
+    setComentarios("");
   }
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
-    const datos = { codigo, cantidad: Number(cantidad) };
+    const datos = {
+      codigo,
+      cantidad: Number(cantidad),
+      comentarios: comentarios.trim() ? comentarios.trim() : null,
+    };
     if (esEdicion) {
       const ok = await onActualizar({ ...datos, isla: inicial.isla });
       if (ok) onCancelarEditar?.();
@@ -108,6 +116,17 @@ export default function FormularioVenta({
             <div className="readout">{valorEstimado}</div>
           </div>
         )}
+
+        <div className="field field--full">
+          <label htmlFor="comentarios_venta">Comentarios (opcional)</label>
+          <textarea
+            id="comentarios_venta"
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+            rows={2}
+            placeholder="Opcional: quedará en la trazabilidad..."
+          />
+        </div>
 
         <div className="field field--full modal__acciones">
           {esEdicion && (

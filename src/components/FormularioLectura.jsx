@@ -24,6 +24,7 @@ export default function FormularioLectura({
   const [lecturaInicial, setLecturaInicial] = useState("");
   const [lecturaFinal, setLecturaFinal] = useState("");
   const [foto, setFoto] = useState(null);
+  const [comentarios, setComentarios] = useState("");
 
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState(null);
@@ -39,6 +40,7 @@ export default function FormularioLectura({
       setMangueraActiva(inicial.manguera_id);
       setLecturaInicial(String(inicial.lectura_inicial));
       setLecturaFinal(String(inicial.lectura_final));
+      setComentarios("");
       setFoto(null);
       setPreviewUrl(null);
       setErrorFoto(null);
@@ -47,6 +49,7 @@ export default function FormularioLectura({
       setMangueraActiva(null);
       setLecturaInicial("");
       setLecturaFinal("");
+      setComentarios("");
       setFoto(null);
       setPreviewUrl(null);
       setErrorFoto(null);
@@ -71,6 +74,7 @@ export default function FormularioLectura({
     setMangueraActiva(null);
     setLecturaInicial("");
     setLecturaFinal("");
+    setComentarios("");
     setFoto(null);
     setPreviewUrl(null);
     setErrorFoto(null);
@@ -121,6 +125,7 @@ export default function FormularioLectura({
       lectura_inicial: Number(parseMiles(String(lecturaInicial))),
       lectura_final: Number(parseMiles(String(lecturaFinal))),
       foto_url: fotoUrl,
+      comentarios: comentarios.trim() ? comentarios.trim() : null,
     };
 
     if (esEdicion) {
@@ -276,6 +281,17 @@ export default function FormularioLectura({
                     <div className="alert alert--error">{errorFoto}</div>
                   </div>
                 )}
+
+                <div className="field field--full">
+                  <label htmlFor="comentarios">Comentarios (opcional)</label>
+                  <textarea
+                    id="comentarios"
+                    value={comentarios}
+                    onChange={(e) => setComentarios(e.target.value)}
+                    rows={2}
+                    placeholder="Opcional: quedará en la trazabilidad..."
+                  />
+                </div>
 
                 <div className="field field--full modal__acciones">
                   <button

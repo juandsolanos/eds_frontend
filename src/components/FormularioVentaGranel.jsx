@@ -13,6 +13,7 @@ export default function FormularioVentaGranel({
   const esEdicion = Boolean(inicial);
   const [codigo, setCodigo] = useState("");
   const [cantidad, setCantidad] = useState("");
+  const [comentarios, setComentarios] = useState("");
 
   const productoSeleccionado = productos.find((p) => p.codigo === codigo);
   const unidad = productoSeleccionado ? unidadGranel(productoSeleccionado.unidad) : null;
@@ -25,20 +26,27 @@ export default function FormularioVentaGranel({
     if (inicial) {
       setCodigo(inicial.codigo);
       setCantidad(String(inicial.cantidad));
+      setComentarios("");
     } else {
       setCodigo("");
       setCantidad("");
+      setComentarios("");
     }
   }, [inicial]);
 
   function limpiar() {
     setCodigo("");
     setCantidad("");
+    setComentarios("");
   }
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
-    const datos = { codigo, cantidad: Number(cantidad) };
+    const datos = {
+      codigo,
+      cantidad: Number(cantidad),
+      comentarios: comentarios.trim() ? comentarios.trim() : null,
+    };
     if (esEdicion) {
       const ok = await onActualizar({ ...datos, isla: inicial.isla });
       if (ok) onCancelarEditar?.();
@@ -85,6 +93,17 @@ export default function FormularioVentaGranel({
             <div className="readout">{valorEstimado}</div>
           </div>
         )}
+
+        <div className="field field--full">
+          <label htmlFor="comentarios_granel">Comentarios (opcional)</label>
+          <textarea
+            id="comentarios_granel"
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+            rows={2}
+            placeholder="Opcional: quedará en la trazabilidad..."
+          />
+        </div>
 
         <div className="field field--full modal__acciones">
           {esEdicion && (

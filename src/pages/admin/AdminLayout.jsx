@@ -30,11 +30,6 @@ export default function AdminLayout() {
           <span>
             {usuario.username} · {usuario.rol}
           </span>
-          {usuario.operarioId && (
-            <NavLink to="/operar" className="topbar__logout">
-              Operar turno
-            </NavLink>
-          )}
           <button className="topbar__logout" onClick={logout}>
             Cerrar sesión
           </button>
