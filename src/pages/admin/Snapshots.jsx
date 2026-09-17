@@ -317,9 +317,9 @@ export default function Snapshots() {
                     <th>Tipo</th>
                     <th>Cantidad</th>
                     <th>Valor total</th>
-                    <th>Ajuste</th>
                     <th>Validado</th>
                     <th>Diferencia</th>
+                    <th>Ajuste</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -339,6 +339,30 @@ export default function Snapshots() {
                         </td>
                         <td className="mono">{formatCant(t.cantidad)}</td>
                         <td className="mono">{formatMoney(t.valor_total)}</td>
+                        <td className="mono">
+                          {validadoExcel ? (
+                            <span title={validadoExcel.descripcion || t.tipo}>
+                              {formatMoney(validadoExcel.valor_total)}
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)" }}>—</span>
+                          )}
+                        </td>
+                        <td
+                          className="mono"
+                          style={{
+                            color:
+                              diferenciaExcel === null
+                                ? "var(--text-muted)"
+                                : diferenciaExcel === 0
+                                  ? "var(--success)"
+                                  : "var(--danger)",
+                            fontWeight: diferenciaExcel === null ? 400 : 700,
+                          }}
+                          title={diferenciaExcel === null ? "" : "Validado (Excel) − Sistema"}
+                        >
+                          {diferenciaExcel === null ? "—" : formatMoney(diferenciaExcel)}
+                        </td>
                         <td>
                           {validacion ? (
                             <span className="mono" title={`Fijado por ${validacion.por || "—"}${validacion.en ? ` · ${validacion.en.replace("T", " ")}` : ""}`}>
@@ -368,30 +392,6 @@ export default function Snapshots() {
                               </button>
                             </span>
                           )}
-                        </td>
-                        <td className="mono">
-                          {validadoExcel ? (
-                            <span title={validadoExcel.descripcion || t.tipo}>
-                              {formatMoney(validadoExcel.valor_total)}
-                            </span>
-                          ) : (
-                            <span style={{ color: "var(--text-muted)" }}>—</span>
-                          )}
-                        </td>
-                        <td
-                          className="mono"
-                          style={{
-                            color:
-                              diferenciaExcel === null
-                                ? "var(--text-muted)"
-                                : diferenciaExcel === 0
-                                  ? "var(--success)"
-                                  : "var(--danger)",
-                            fontWeight: diferenciaExcel === null ? 400 : 700,
-                          }}
-                          title={diferenciaExcel === null ? "" : "Validado (Excel) − Sistema"}
-                        >
-                          {diferenciaExcel === null ? "—" : formatMoney(diferenciaExcel)}
                         </td>
                       </tr>
                     );
