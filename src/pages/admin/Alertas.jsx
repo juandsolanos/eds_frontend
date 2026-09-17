@@ -150,60 +150,6 @@ export default function Alertas() {
         )}
       </div>
 
-      {esSuperadmin && (
-        <div className="card">
-          <h3 className="card__title" style={{ marginBottom: "var(--spacing-4)" }}>
-            Permisos por tipo de alerta
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
-            {permisos.map((p) => (
-              <div
-                key={p.tipo}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "var(--spacing-3)",
-                  borderBottom: "1px solid var(--border)",
-                  paddingBottom: "var(--spacing-3)",
-                }}
-              >
-                <div>
-                  <strong>{p.tipo}</strong>
-                  <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                    Ven: {p.roles_pueden_ver.join(", ")} · Atienden: {p.roles_pueden_atender.join(", ")}
-                  </div>
-                  {p.descripcion && (
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{p.descripcion}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-2)" }}>
-              <strong>Configurar tipo</strong>
-              <input
-                placeholder="Tipo de alerta (p. ej. stock_bajo)"
-                value={nuevoTipo}
-                onChange={(e) => setNuevoTipo(e.target.value)}
-              />
-              <input
-                placeholder="Roles que la ven (separados por coma)"
-                value={verRoles}
-                onChange={(e) => setVerRoles(e.target.value)}
-              />
-              <input
-                placeholder="Roles que la atienden (separados por coma)"
-                value={atenderRoles}
-                onChange={(e) => setAtenderRoles(e.target.value)}
-              />
-              <button className="btn btn--primary" onClick={manejarGuardarPermiso}>
-                Guardar configuración
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {verDetalle && (
         <div className="modal-overlay" onClick={() => setVerDetalle(null)}>
