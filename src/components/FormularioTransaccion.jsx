@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import InputMiles from "./InputMiles";
+import { formatMoney } from "../utils/format";
 
 export default function FormularioTransaccion({
   tipos,
@@ -24,6 +25,21 @@ export default function FormularioTransaccion({
           (inicial && String(c.id) === String(inicial.cliente_id))
       )
     : [];
+
+  const esMinorista = tipo === "minorista";
+  const clienteSel = clientesFiltrados.find((c) => String(c.id) === String(clienteId)) || null;
+
+  // Al editar una transacción minorista del mismo cliente, su valor ya está
+  // incluido en el balance: lo descontamos para calcular el disponible real.
+  const valorIncluido =
+    esEdicion && inicial?.tipo === "minorista" && String(inicial?.cliente_id) === String(clienteId)
+      ? Number(inicial.valor)
+      : 0;
+  const balanceBase = clienteSel ? Number(clienteSel.balance) - valorIncluido : 0;
+  const disponible = clienteSel ? Number(clienteSel.deuda_permitida) - balanceBase : 0;
+  const excedeLimite =
+    esMinorista && clienteSel && Number(valor) > 0 && Number(valor) > disponible;
+  const faltaCliente = esMinorista && !clienteId;
 
   useEffect(() => {
     if (inicial) {
@@ -102,7 +118,9 @@ export default function FormularioTransaccion({
 
         {mostrarCliente && (
           <div className="field field--full">
-            <label htmlFor="cliente">Cliente (opcional)</label>
+            <label htmlFor="cliente">
+              Cliente {esMinorista ? "(requerido)" : "(opcional)"}
+            </label>
             <select
               id="cliente"
               value={clienteId}
@@ -117,6 +135,21 @@ export default function FormularioTransaccion({
             </select>
             {clientesFiltrados.length === 0 && (
               <small>No hay clientes con este tipo de crédito habilitado.</small>
+            )}
+            {clienteSel && (
+              <small style={{ display: "block", marginTop: "var(--spacing-1)" }}>
+                Balance: {formatMoney(clienteSel.balance)} · Deuda permitida:{" "}
+                {formatMoney(clienteSel.deuda_permitida)} · Disponible: {formatMoney(disponible)}
+              </small>
+            )}
+            {faltaCliente && (
+              <small style={{ color: "#ef4444" }}>Debes seleccionar un cliente para Minorista.</small>
+            )}
+            {excedeLimite && (
+              <small style={{ color: "#ef4444" }}>
+                El valor supera la deuda permitida del cliente (disponible: {formatMoney(disponible)}).
+                Un superadministrador debe ampliar la deuda permitida.
+              </small>
             )}
           </div>
         )}
@@ -138,7 +171,11 @@ export default function FormularioTransaccion({
               Cancelar edición
             </button>
           )}
-          <button type="submit" className="btn btn--primary" disabled={cargando}>
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={cargando || excedeLimite || faltaCliente}
+          >
             {esEdicion
               ? cargando
                 ? "Guardando..."

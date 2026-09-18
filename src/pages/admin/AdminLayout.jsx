@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: "/admin/registros", label: "Detalles Turnos" },
   { to: "/admin/snapshots", label: "Snapshots" },
   { to: "/admin/inventario", label: "Inventario" },
+  { to: "/admin/estados-cuenta", label: "Estados de cuenta" },
   { to: "/admin/alertas", label: "Alertas" },
   { to: "/admin/catalogos", label: "Configuración", soloSuperadmin: true },
   { to: "/admin/historial-precios", label: "Historial de precios" },

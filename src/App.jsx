@@ -11,6 +11,7 @@ import Trazabilidad from "./pages/admin/Trazabilidad";
 import Turnos from "./pages/admin/Turnos";
 import Alertas from "./pages/admin/Alertas";
 import Snapshots from "./pages/admin/Snapshots";
+import EstadosCuenta from "./pages/admin/EstadosCuenta";
 
 export default function App() {
   const { token, usuario } = useAuth();
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="registros" element={<Registros />} />
             <Route path="snapshots" element={<Snapshots />} />
             <Route path="inventario" element={<Inventario />} />
+            <Route path="estados-cuenta" element={<EstadosCuenta />} />
             {esSuperadmin && <Route path="catalogos" element={<Catalogos />} />}
             <Route path="historial-precios" element={<HistorialPrecios />} />
             <Route path="trazabilidad" element={<Trazabilidad />} />

@@ -505,6 +505,7 @@ export default function OperarioPanel() {
       await api.crearTransaccion(token, conTurno(datos));
       mostrarExito("Transacción registrada.");
       await cargarRegistrosDelTurno(turnoSeleccionado);
+      await cargarClientes();
       return true;
     } catch (err) {
       mostrarError(err);
@@ -566,6 +567,7 @@ export default function OperarioPanel() {
       await api.actualizarTransaccion(token, transaccion.id, conTurno(datos));
       mostrarExito("Transacción actualizada.");
       await cargarRegistrosDelTurno(turnoSeleccionado);
+      await cargarClientes();
       return true;
     } catch (err) {
       mostrarError(err);
@@ -592,6 +594,7 @@ export default function OperarioPanel() {
       mostrarExito(tipo === "transaccion" ? "Transacción anulada." : "Registro eliminado.");
       setItemAEliminar(null);
       await cargarRegistrosDelTurno(turnoSeleccionado);
+      if (tipo === "transaccion") await cargarClientes();
     } catch (err) {
       mostrarError(err);
     } finally {

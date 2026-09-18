@@ -293,6 +293,34 @@ export const api = {
   listarClientes: (token, opts) => request("/api/clientes/", { token, ...opts }),
   listarIslas: (token, opts) => request("/api/islas/", { token, ...opts }),
 
+  // Estado de cuenta de clientes (balance + deuda permitida + abonos)
+  listarEstadosCuenta: (token, opts) => request("/api/estados-cuenta/", { token, ...opts }),
+  obtenerEstadoCuenta: (token, clienteId, opts) =>
+    request(`/api/estados-cuenta/${encodeURIComponent(clienteId)}`, { token, ...opts }),
+  actualizarDeudaPermitida: (token, clienteId, deudaPermitida, opts) =>
+    request(`/api/estados-cuenta/${encodeURIComponent(clienteId)}/deuda-permitida`, {
+      method: "PUT",
+      token,
+      body: { deuda_permitida: deudaPermitida },
+      ...opts,
+    }),
+  listarAbonos: (token, clienteId, opts) =>
+    request(`/api/estados-cuenta/${encodeURIComponent(clienteId)}/abonos`, { token, ...opts }),
+  crearAbono: (token, clienteId, datos, opts) =>
+    request(`/api/estados-cuenta/${encodeURIComponent(clienteId)}/abonos`, {
+      method: "POST",
+      token,
+      body: datos,
+      ...opts,
+    }),
+  anularAbono: (token, abonoId, opts) =>
+    request(`/api/estados-cuenta/abonos/${encodeURIComponent(abonoId)}`, {
+      method: "DELETE",
+      token,
+      ...opts,
+    }),
+
+
   // Alertas
   listarAlertas: (token, opts) => request("/api/alertas/", { token, ...opts }),
   crearAlerta: (token, datos, opts) =>
