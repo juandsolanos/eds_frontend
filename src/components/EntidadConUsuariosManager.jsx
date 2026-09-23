@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import RegistrosTabla from "./RegistrosTabla";
@@ -42,6 +42,7 @@ export default function EntidadConUsuariosManager({
   const [cargandoUsuario, setCargandoUsuario] = useState(false);
 
   const [usuarioPassword, setUsuarioPassword] = useState(null);
+  const [filtroEstado, setFiltroEstado] = useState("todos");
 
   const cargarEntidades = useCallback(async ({ signal } = {}) => {
     const data = await apiResource.listar(token, { signal });
@@ -157,6 +158,22 @@ export default function EntidadConUsuariosManager({
 
   const usuarioVisible = usuarioDe(entidadUsuario);
 
+  const entidadesFiltradas = useMemo(() => {
+    switch (filtroEstado) {
+      case "sin_usuario":
+        return entidades.filter((e) => !usuarioDe(e));
+      case "activos":
+        return entidades.filter((e) => usuarioDe(e)?.activo);
+      case "inactivos":
+        return entidades.filter((e) => {
+          const u = usuarioDe(e);
+          return u && !u.activo;
+        });
+      default:
+        return entidades;
+    }
+  }, [entidades, filtroEstado, usuarios]);
+
   // ----------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------
@@ -197,6 +214,20 @@ export default function EntidadConUsuariosManager({
         </div>
       </form>
 
+      <div className="field" style={{ maxWidth: 280, marginBottom: "var(--spacing-4)" }}>
+        <label htmlFor="filtro-estado">Filtrar por estado de usuario</label>
+        <select
+          id="filtro-estado"
+          value={filtroEstado}
+          onChange={(e) => setFiltroEstado(e.target.value)}
+        >
+          <option value="todos">Todos</option>
+          <option value="activos">Activos</option>
+          <option value="inactivos">Inactivos</option>
+          <option value="sin_usuario">Sin usuario</option>
+        </select>
+      </div>
+
       <RegistrosTabla
         columnas={[
           ...campos.map((c) => ({ key: c.key, label: c.label })),
@@ -234,7 +265,7 @@ export default function EntidadConUsuariosManager({
             ),
           },
         ]}
-        filas={entidades}
+        filas={entidadesFiltradas}
         vacio={`Sin registros en ${titulo.toLowerCase()} todavía.`}
       />
 
