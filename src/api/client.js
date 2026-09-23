@@ -78,16 +78,19 @@ async function requestArchivo(path, { archivo, token, signal }) {
 // a partir de la ruta base. La función `request` de arriba sigue siendo
 // donde vive toda la lógica real (headers, errores); esto solo evita
 // repetir la construcción de la URL.
-function crudEndpoints(basePath) {
-  return {
+function crudEndpoints(basePath, { permitirEliminar = true } = {}) {
+  const endpoints = {
     listar: (token, opts) => request(`${basePath}/`, { token, ...opts }),
     obtener: (token, id, opts) => request(`${basePath}/${encodeURIComponent(id)}`, { token, ...opts }),
     crear: (token, datos, opts) => request(`${basePath}/`, { method: "POST", token, body: datos, ...opts }),
     actualizar: (token, id, datos, opts) =>
       request(`${basePath}/${encodeURIComponent(id)}`, { method: "PUT", token, body: datos, ...opts }),
-    eliminar: (token, id, opts) =>
-      request(`${basePath}/${encodeURIComponent(id)}`, { method: "DELETE", token, ...opts }),
   };
+  if (permitirEliminar) {
+    endpoints.eliminar = (token, id, opts) =>
+      request(`${basePath}/${encodeURIComponent(id)}`, { method: "DELETE", token, ...opts });
+  }
+  return endpoints;
 }
 
 export const api = {
@@ -264,8 +267,8 @@ export const api = {
 
   // Catálogos (CRUD completo, usado por el panel de administrador)
   islas: crudEndpoints("/api/islas"),
-  operarios: crudEndpoints("/api/operarios"),
-  administradores: crudEndpoints("/api/administradores"),
+  operarios: crudEndpoints("/api/operarios", { permitirEliminar: false }),
+  administradores: crudEndpoints("/api/administradores", { permitirEliminar: false }),
   clientes: crudEndpoints("/api/clientes"),
   productosGranel: crudEndpoints("/api/productos-granel"),
   productosUnidad: crudEndpoints("/api/productos-unidad"),
@@ -348,8 +351,6 @@ export const api = {
     request("/api/usuarios/", { method: "POST", token, body: datos, ...opts }),
   actualizarUsuario: (token, id, datos, opts) =>
     request(`/api/usuarios/${id}`, { method: "PUT", token, body: datos, ...opts }),
-  eliminarUsuario: (token, id, opts) =>
-    request(`/api/usuarios/${id}`, { method: "DELETE", token, ...opts }),
   resetearPassword: (token, id, password, opts) =>
     request(`/api/usuarios/${id}/password`, {
       method: "POST",

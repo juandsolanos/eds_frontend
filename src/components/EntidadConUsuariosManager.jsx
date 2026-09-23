@@ -2,17 +2,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import RegistrosTabla from "./RegistrosTabla";
-import ConfirmModal from "./ConfirmModal";
 import CambioPasswordModal from "./CambioPasswordModal";
 
 /**
  * Gestor de una entidad (operarios o administradores) que además gestiona
  * el Usuario del sistema asociado a cada entidad:
  *
- * - CRUD de la entidad (como antes).
+ * - Creación/edición de la entidad (sin eliminar; los registros se
+ *   conservan para trazabilidad).
  * - Si la entidad no tiene usuario -> formulario para crearlo.
- * - Si ya tiene -> activar/desactivar, cambiar rol (solo admins),
- *   resetear contraseña y eliminar el usuario.
+ * - Si ya tiene -> activar/desactivar, cambiar rol (solo admins) y
+ *   resetear contraseña.
  *
  * rol es UN único por usuario (responsabilidades separadas): un operario
  * siempre rol 'operario'; un administrador puede ser 'administrador' o
@@ -42,8 +42,6 @@ export default function EntidadConUsuariosManager({
   const [cargandoUsuario, setCargandoUsuario] = useState(false);
 
   const [usuarioPassword, setUsuarioPassword] = useState(null);
-  const [entidadAEliminar, setEntidadAEliminar] = useState(null);
-  const [usuarioAEliminar, setUsuarioAEliminar] = useState(null);
 
   const cargarEntidades = useCallback(async ({ signal } = {}) => {
     const data = await apiResource.listar(token, { signal });
@@ -101,18 +99,6 @@ export default function EntidadConUsuariosManager({
     }
   }
 
-  async function manejarEliminarEntidad() {
-    const item = entidadAEliminar;
-    setEntidadAEliminar(null);
-    setError(null);
-    try {
-      await apiResource.eliminar(token, item[idField]);
-      await cargarEntidades();
-    } catch (err) {
-      setError(err.detail);
-    }
-  }
-
   // ----------------------------------------------------------------
   // Usuario de la entidad (modal)
   // ----------------------------------------------------------------
@@ -163,18 +149,6 @@ export default function EntidadConUsuariosManager({
     setErrorUsuario(null);
     try {
       await api.actualizarUsuario(token, usuario.id, { rol: nuevoRol });
-      await cargarUsuarios();
-    } catch (err) {
-      setErrorUsuario(err.detail);
-    }
-  }
-
-  async function manejarEliminarUsuario() {
-    const u = usuarioAEliminar;
-    setUsuarioAEliminar(null);
-    setErrorUsuario(null);
-    try {
-      await api.eliminarUsuario(token, u.id);
       await cargarUsuarios();
     } catch (err) {
       setErrorUsuario(err.detail);
@@ -255,9 +229,6 @@ export default function EntidadConUsuariosManager({
               <div style={{ display: "flex", gap: "var(--spacing-2)" }}>
                 <button className="btn btn--ghost" onClick={() => cargarParaEditar(item)}>
                   Editar
-                </button>
-                <button className="btn btn--danger" onClick={() => setEntidadAEliminar(item)}>
-                  Eliminar
                 </button>
               </div>
             ),
@@ -393,14 +364,6 @@ export default function EntidadConUsuariosManager({
                   >
                     Cambiar contraseña
                   </button>
-
-                  <button
-                    type="button"
-                    className="btn btn--danger"
-                    onClick={() => setUsuarioAEliminar(usuarioVisible)}
-                  >
-                    Eliminar usuario
-                  </button>
                 </div>
               </div>
             )}
@@ -417,20 +380,6 @@ export default function EntidadConUsuariosManager({
           await api.resetearPassword(token, usuarioPassword.id, nueva);
           await cargarUsuarios();
         }}
-      />
-
-      <ConfirmModal
-        open={entidadAEliminar !== null}
-        mensaje={`¿Eliminar este registro de ${titulo.toLowerCase()}?`}
-        onConfirmar={manejarEliminarEntidad}
-        onCancelar={() => setEntidadAEliminar(null)}
-      />
-
-      <ConfirmModal
-        open={usuarioAEliminar !== null}
-        mensaje={`¿Eliminar el usuario '${usuarioAEliminar?.username ?? ""}'? Eliminar el usuario permite luego eliminar la entidad asociada.`}
-        onConfirmar={manejarEliminarUsuario}
-        onCancelar={() => setUsuarioAEliminar(null)}
       />
     </div>
   );
