@@ -1,0 +1,8 @@
+{
+  "appId": "com.edsoft.app",
+  "appName": "EDS",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#0d0f14"
+  }
+}

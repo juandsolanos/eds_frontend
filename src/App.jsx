@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import OperarioPanel from "./pages/OperarioPanel";
@@ -23,7 +23,7 @@ export default function App() {
   const esOperario = usuario.rol === "operario";
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {/* Operar turnos requiere credenciales de operario: los
             administradores editan turnos puntuales desde Detalles Turnos */}
@@ -50,6 +50,6 @@ export default function App() {
           element={<Navigate to={esAdministrador ? "/admin" : esOperario ? "/operar" : "/admin"} replace />}
         />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

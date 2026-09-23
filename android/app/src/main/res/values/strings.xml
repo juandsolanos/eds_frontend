@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EDS</string>
+    <string name="title_activity_main">EDS</string>
+    <string name="package_name">com.edsoft.app</string>
+    <string name="custom_url_scheme">com.edsoft.app</string>
+</resources>

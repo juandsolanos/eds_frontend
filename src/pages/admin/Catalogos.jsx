@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../../api/client";
 import CatalogoManager from "../../components/CatalogoManager";
+import EntidadConUsuariosManager from "../../components/EntidadConUsuariosManager";
 
 const CATALOGOS = [
   {
@@ -130,6 +131,45 @@ export default function Catalogos() {
   const [tab, setTab] = useState(CATALOGOS[0].key);
   const catalogo = CATALOGOS.find((c) => c.key === tab);
 
+  function ContenidoTab() {
+    if (catalogo.key === "operarios") {
+      return (
+        <EntidadConUsuariosManager
+          key={catalogo.key}
+          titulo={catalogo.titulo}
+          apiResource={catalogo.apiResource}
+          campos={catalogo.campos}
+          idField={catalogo.idField}
+          tipoUsuario="operario"
+          rolesPermitidosUsuario={["operario"]}
+        />
+      );
+    }
+    if (catalogo.key === "administradores") {
+      return (
+        <EntidadConUsuariosManager
+          key={catalogo.key}
+          titulo={catalogo.titulo}
+          apiResource={catalogo.apiResource}
+          campos={catalogo.campos}
+          idField={catalogo.idField}
+          tipoUsuario="administrador"
+          rolesPermitidosUsuario={["administrador", "superadministrador"]}
+        />
+      );
+    }
+    return (
+      <CatalogoManager
+        titulo={catalogo.titulo}
+        apiResource={catalogo.apiResource}
+        campos={catalogo.campos}
+        idField={catalogo.idField}
+        filtroPor={catalogo.filtroPor}
+        formEnModal={catalogo.formEnModal}
+      />
+    );
+  }
+
   return (
     <div className="card">
       <div className="tabs">
@@ -144,15 +184,9 @@ export default function Catalogos() {
         ))}
       </div>
 
-      <CatalogoManager
-        key={catalogo.key /* fuerza remount al cambiar de pestaña */}
-        titulo={catalogo.titulo}
-        apiResource={catalogo.apiResource}
-        campos={catalogo.campos}
-        idField={catalogo.idField}
-        filtroPor={catalogo.filtroPor}
-        formEnModal={catalogo.formEnModal}
-      />
+      <div key={catalogo.key /* fuerza remount al cambiar de pestaña */}>
+        <ContenidoTab />
+      </div>
     </div>
   );
 }

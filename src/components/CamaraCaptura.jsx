@@ -1,4 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 function mensajeError(error) {
   if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
@@ -13,10 +15,20 @@ function mensajeError(error) {
   if (error?.name === "AbortError") {
     return "Se canceló la solicitud de cámara. Inténtalo de nuevo.";
   }
-  if (/^https?:/.test(window.location.protocol) === false) {
+  if (/^https?:/.test(window.location.protocol) === false && !Capacitor.isNativePlatform()) {
     return "La cámara solo funciona sobre una conexión segura (HTTPS).";
   }
   return `No se pudo abrir la cámara: ${error?.message || "error desconocido"}`;
+}
+
+// Convierte el base64 que devuelve @capacitor/camera en un File, el mismo
+// tipo de archivo que genera el flujo web (getUserMedia + canvas), de modo
+// que el resto del formulario (subida a Supabase) no cambia.
+function base64AFile(base64, mimeType) {
+  const bstr = atob(base64);
+  const u8arr = new Uint8Array(bstr.length);
+  for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+  return new File([u8arr], "foto-evidencia.jpg", { type: mimeType || "image/jpeg" });
 }
 
 function canvasABlob(canvas, cb) {
@@ -84,14 +96,33 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
     setPreviewUrl(null);
     setIniciando(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      setEstado("activa");
+      if (Capacitor.isNativePlatform()) {
+        // App nativa (Android): cámara nativa vía plugin, más confiable que
+        // getUserMedia dentro del WebView.
+        const resultado = await Camera.getPhoto({
+          quality: 92,
+          resultType: CameraResultType.Base64,
+          source: CameraSource.Camera,
+          correctOrientation: true,
+        });
+        const archivo = base64AFile(resultado.base64String, resultado.mimeType);
+        setFoto(archivo);
+        setPreviewUrl(URL.createObjectURL(archivo));
+        setEstado("capturada");
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        streamRef.current = stream;
+        setEstado("activa");
+      }
     } catch (err) {
-      setError(mensajeError(err));
+      if (Capacitor.isNativePlatform() && /cancel/i.test(err?.message || "")) {
+        onCerrar();
+      } else {
+        setError(Capacitor.isNativePlatform() ? `No se pudo abrir la cámara: ${err?.message || "error desconocido"}` : mensajeError(err));
+      }
       setEstado("idle");
     } finally {
       setIniciando(false);

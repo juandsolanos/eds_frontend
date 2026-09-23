@@ -13,6 +13,7 @@ import RegistrosTabla from "../components/RegistrosTabla";
 import ResumenTurno from "../components/ResumenTurno";
 import TareasTab from "../components/TareasTab";
 import CatalogoManager from "../components/CatalogoManager";
+import CambioPasswordModal from "../components/CambioPasswordModal";
 import { formatMoney, formatVol, formatCant, unidadGranel } from "../utils/format";
 
 const CAMPOS_CLIENTES = [
@@ -51,6 +52,7 @@ export default function OperarioPanel() {
   // escrituras; oculta abrir/cerrar/revisar.
   const { turnoId } = useParams();
   const modoAdmin = Boolean(turnoId);
+  const [mostrarCambioPassword, setMostrarCambioPassword] = useState(false);
 
   const [turnos, setTurnos] = useState([]);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
@@ -731,11 +733,22 @@ export default function OperarioPanel() {
               </Link>
             )
           )}
+          <button className="topbar__logout" onClick={() => setMostrarCambioPassword(true)}>
+            Cambiar contraseña
+          </button>
           <button className="topbar__logout" onClick={logout}>
             Cerrar sesión
           </button>
         </div>
       </header>
+
+      <CambioPasswordModal
+        open={mostrarCambioPassword}
+        titulo="Cambiar mi contraseña"
+        requiereActual
+        onCerrar={() => setMostrarCambioPassword(false)}
+        onGuardar={(actual, nueva) => api.cambiarMiPassword(token, actual, nueva)}
+      />
 
       <main className="main">
         {mensaje && (

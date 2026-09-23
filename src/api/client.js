@@ -341,6 +341,29 @@ export const api = {
       body: datos,
       ...opts,
     }),
+
+  // Usuarios del sistema (solo superadmin para gestión; autoservicio para cambiar mi contraseña)
+  listarUsuarios: (token, opts) => request("/api/usuarios/", { token, ...opts }),
+  crearUsuario: (token, datos, opts) =>
+    request("/api/usuarios/", { method: "POST", token, body: datos, ...opts }),
+  actualizarUsuario: (token, id, datos, opts) =>
+    request(`/api/usuarios/${id}`, { method: "PUT", token, body: datos, ...opts }),
+  eliminarUsuario: (token, id, opts) =>
+    request(`/api/usuarios/${id}`, { method: "DELETE", token, ...opts }),
+  resetearPassword: (token, id, password, opts) =>
+    request(`/api/usuarios/${id}/password`, {
+      method: "POST",
+      token,
+      body: { password },
+      ...opts,
+    }),
+  cambiarMiPassword: (token, passwordActual, passwordNueva, opts) =>
+    request("/api/usuarios/me/cambiar-password", {
+      method: "POST",
+      token,
+      body: { password_actual: passwordActual, password_nueva: passwordNueva },
+      ...opts,
+    }),
 };
 
 export { ApiError };

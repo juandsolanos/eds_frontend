@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { api } from "../../api/client";
+import CambioPasswordModal from "../../components/CambioPasswordModal";
 
 const NAV_ITEMS = [
   { to: "/admin/turnos", label: "Turnos" },
@@ -14,7 +17,8 @@ const NAV_ITEMS = [
 ];
 
 export default function AdminLayout() {
-  const { usuario, logout } = useAuth();
+  const { token, usuario, logout } = useAuth();
+  const [mostrarCambioPassword, setMostrarCambioPassword] = useState(false);
 
   const itemsVisibles = NAV_ITEMS.filter(
     (item) => !item.soloSuperadmin || usuario.rol === "superadministrador"
@@ -31,11 +35,22 @@ export default function AdminLayout() {
           <span>
             {usuario.username} · {usuario.rol}
           </span>
+          <button className="topbar__logout" onClick={() => setMostrarCambioPassword(true)}>
+            Cambiar contraseña
+          </button>
           <button className="topbar__logout" onClick={logout}>
             Cerrar sesión
           </button>
         </div>
       </header>
+
+      <CambioPasswordModal
+        open={mostrarCambioPassword}
+        titulo="Cambiar mi contraseña"
+        requiereActual
+        onCerrar={() => setMostrarCambioPassword(false)}
+        onGuardar={(actual, nueva) => api.cambiarMiPassword(token, actual, nueva)}
+      />
 
       <div style={{ display: "flex", flex: 1 }}>
         <nav
