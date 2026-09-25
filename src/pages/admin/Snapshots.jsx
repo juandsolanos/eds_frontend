@@ -228,6 +228,19 @@ export default function Snapshots() {
     }
   }
 
+  function pedirConfirmacion(accion, mensaje) {
+    setConfirmacion({ accion, mensaje });
+  }
+
+  function ejecutarConfirmacion() {
+    if (!confirmacion) return;
+    const { accion } = confirmacion;
+    setConfirmacion(null);
+    if (accion === "actualizar") manejarActualizar();
+    else if (accion === "cerrar") manejarCerrarDia();
+    else if (accion === "reabrir") manejarReabrir();
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
       <div className="card">
@@ -337,20 +350,7 @@ export default function Snapshots() {
                     const diferenciaExcel =
                       validadoExcel === undefined ? null : validadoExcel.valor_total - t.valor_total;
                     const puedeValidar = esAdmin && origen === "guardado" && !cerradoDetalle;
-function pedirConfirmacion(accion, mensaje) {
-    setConfirmacion({ accion, mensaje });
-  }
-
-  function ejecutarConfirmacion() {
-    if (!confirmacion) return;
-    const { accion } = confirmacion;
-    setConfirmacion(null);
-    if (accion === "actualizar") manejarActualizar();
-    else if (accion === "cerrar") manejarCerrarDia();
-    else if (accion === "reabrir") manejarReabrir();
-  }
-
-  return (
+                    return (
                       <tr key={t.tipo}>
                         <td>
                           {t.nombre || t.tipo}{" "}
