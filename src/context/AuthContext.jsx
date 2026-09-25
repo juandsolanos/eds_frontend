@@ -7,23 +7,43 @@ const STORAGE_KEY = "eds_token";
 
 function decodificarPayload(token) {
   // El JWT tiene 3 partes separadas por "." — la del medio es el payload
-  // en base64. Lo decodificamos manualmente aquí (sin librería externa)
-  // para saber quién es el usuario sin tener que consultar al backend.
+  // en base64url (sin padding). Lo decodificamos manualmente aquí (sin
+  // librería externa) para saber quién es el usuario sin tener que
+  // consultar al backend, y validamos que no esté vencido.
   try {
-    const payloadBase64 = token.split(".")[1];
-    const json = atob(payloadBase64.replace(/-/g, "+").replace(/_/g, "/"));
-    return JSON.parse(json);
+    let payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return null;
+    payloadBase64 = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+    const sobrante = payloadBase64.length % 4;
+    if (sobrante === 1) return null;
+    if (sobrante) payloadBase64 += "=".repeat(4 - sobrante);
+    const json = atob(payloadBase64);
+    const payload = JSON.parse(json);
+    if (typeof payload.exp === "number" && payload.exp * 1000 <= Date.now()) {
+      return null;
+    }
+    return payload;
   } catch {
     return null;
   }
 }
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY));
+  const [token, setToken] = useState(() => {
+    const guardado = localStorage.getItem(STORAGE_KEY);
+    return guardado && decodificarPayload(guardado) ? guardado : null;
+  });
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
 
   const payload = token ? decodificarPayload(token) : null;
+
+  useEffect(() => {
+    const guardado = localStorage.getItem(STORAGE_KEY);
+    if (guardado && !decodificarPayload(guardado)) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [token]);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);

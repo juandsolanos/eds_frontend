@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
+import ConfirmModal from "../../components/ConfirmModal";
 import { formatCant } from "../../utils/format";
 
 function formatoFecha(iso) {
@@ -22,6 +23,7 @@ export default function Inventario() {
   const [cargandoTabla, setCargandoTabla] = useState(false);
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
+  const [confirmacionCierre, setConfirmacionCierre] = useState(false);
 
   const [modal, setModal] = useState(null); // { tipo: "mover" | "ajuste", fila }
   const [moverCantidad, setMoverCantidad] = useState("");
@@ -135,9 +137,6 @@ export default function Inventario() {
   }
 
   async function manejarCerrarDia() {
-    if (!window.confirm("¿Congelar el inventario actual de todas las bodegas como cierre de hoy?")) {
-      return;
-    }
     setError(null);
     setExito(null);
     try {
@@ -245,7 +244,11 @@ export default function Inventario() {
                 ))}
               </select>
             </div>
-            <button className="btn" onClick={manejarCerrarDia} title="Congela el inventario actual como cierre de hoy">
+            <button
+              className="btn"
+              onClick={() => setConfirmacionCierre(true)}
+              title="Congela el inventario actual como cierre de hoy"
+            >
               Cerrar día
             </button>
           </div>
@@ -409,6 +412,16 @@ export default function Inventario() {
           )}
         </Modal>
       )}
+
+      <ConfirmModal
+        open={confirmacionCierre}
+        mensaje="¿Congelar el inventario actual de todas las bodegas como cierre de hoy?"
+        onConfirmar={() => {
+          setConfirmacionCierre(false);
+          manejarCerrarDia();
+        }}
+        onCancelar={() => setConfirmacionCierre(false)}
+      />
     </div>
   );
 }

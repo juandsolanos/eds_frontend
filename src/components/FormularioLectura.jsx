@@ -30,8 +30,19 @@ export default function FormularioLectura({
   const [errorFoto, setErrorFoto] = useState(null);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const previewUrlRef = useRef(null);
 
   const cancelarRef = useRef(null);
+
+  function fijarPreviewUrl(url) {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = url;
+    setPreviewUrl(url);
+  }
+
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
 
   const mangueraIdsLeidas = new Set((lecturas || []).map((l) => l.manguera_id));
 
@@ -324,7 +335,7 @@ export default function FormularioLectura({
         abierta={camaraAbierta}
         onCapturar={(archivo) => {
           setFoto(archivo);
-          setPreviewUrl(URL.createObjectURL(archivo));
+          fijarPreviewUrl(URL.createObjectURL(archivo));
           setErrorFoto(null);
         }}
         onCerrar={() => setCamaraAbierta(false)}

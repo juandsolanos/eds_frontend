@@ -19,7 +19,7 @@ class ApiError extends Error {
   }
 }
 
-async function request(path, { method = "GET", body, token, signal } = {}) {
+async function request(path, { method = "GET", body, token, signal, manejarUnauthorized = true } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -36,7 +36,7 @@ async function request(path, { method = "GET", body, token, signal } = {}) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    if (response.status === 401 && onUnauthorized) {
+    if (response.status === 401 && onUnauthorized && manejarUnauthorized) {
       onUnauthorized();
     }
     const detail = data?.detail || "Ocurrió un error inesperado.";
@@ -95,7 +95,11 @@ function crudEndpoints(basePath, { permitirEliminar = true } = {}) {
 
 export const api = {
   login: (username, password) =>
-    request("/api/auth/login", { method: "POST", body: { username, password } }),
+    request("/api/auth/login", {
+      method: "POST",
+      body: { username, password },
+      manejarUnauthorized: false,
+    }),
 
   turnoActivo: (token, opts) => request("/api/turnos/activo", { token, ...opts }),
   turnoEnEspera: (token, opts) => request("/api/turnos/en_espera", { token, ...opts }),

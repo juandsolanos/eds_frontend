@@ -52,11 +52,24 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const previewUrlRef = useRef(null);
   const [estado, setEstado] = useState("idle");
   const [iniciando, setIniciando] = useState(false);
   const [error, setError] = useState(null);
   const [foto, setFoto] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  function fijarPreviewUrl(url) {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = url;
+    setPreviewUrl(url);
+  }
+
+  function limpiarPreview() {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = null;
+    setPreviewUrl(null);
+  }
 
   const detenerStream = useCallback(() => {
     if (streamRef.current) {
@@ -73,13 +86,14 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
       detenerStream();
       setEstado("idle");
       setFoto(null);
-      setPreviewUrl(null);
+      limpiarPreview();
       setError(null);
       setIniciando(false);
     }
   }, [abierta, detenerStream]);
 
   useEffect(() => () => detenerStream(), [detenerStream]);
+  useEffect(() => () => limpiarPreview(), []);
 
   useEffect(() => {
     if (estado === "activa" && streamRef.current && videoRef.current) {
@@ -107,7 +121,7 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
         });
         const archivo = base64AFile(resultado.base64String, resultado.mimeType);
         setFoto(archivo);
-        setPreviewUrl(URL.createObjectURL(archivo));
+        fijarPreviewUrl(URL.createObjectURL(archivo));
         setEstado("capturada");
       } else {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -146,7 +160,7 @@ export default function CamaraCaptura({ abierta, onCapturar, onCerrar }) {
       }
       const archivo = new File([blob], "foto-evidencia.jpg", { type: "image/jpeg" });
       setFoto(archivo);
-      setPreviewUrl(URL.createObjectURL(archivo));
+      fijarPreviewUrl(URL.createObjectURL(archivo));
       setEstado("capturada");
       detenerStream();
     });

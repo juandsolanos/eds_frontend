@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { formatMoney, formatVol, formatCant } from "../../utils/format";
+import ConfirmModal from "../../components/ConfirmModal";
 
 function aISO(fecha) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -34,6 +35,7 @@ export default function Snapshots() {
   const [error, setError] = useState(null);
   const [exito, setExito] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [confirmacion, setConfirmacion] = useState(null); // { accion, mensaje } | null
 
   const cargarHistorial = useCallback(
     async ({ signal } = {}) => {
@@ -95,13 +97,6 @@ export default function Snapshots() {
     // Recalcula el snapshot releyendo los datos del día y lo guarda
     // (el backend hace UPSERT: si ya existe, lo actualiza).
     if (!detalle) return;
-    if (
-      !window.confirm(
-        `¿Releer los datos del ${detalle.fecha} y recalcular su snapshot? Se actualizará el guardado.`
-      )
-    ) {
-      return;
-    }
     setCargando(true);
     setError(null);
     setExito(null);
@@ -123,13 +118,6 @@ export default function Snapshots() {
   async function manejarCerrarDia() {
     // Cierra el día: congela el snapshot y bloquea la edición de sus
     // turnos y movimientos (solo superadmin).
-    if (
-      !window.confirm(
-        `¿Cerrar el día ${fecha}? No se podrán editar sus turnos, transacciones, lecturas ni ventas, ni recalcular el snapshot.`
-      )
-    ) {
-      return;
-    }
     setCargando(true);
     setError(null);
     setExito(null);
@@ -149,13 +137,6 @@ export default function Snapshots() {
 
   async function manejarReabrir() {
     const fechaCierre = detalle ? detalle.fecha : fecha;
-    if (
-      !window.confirm(
-        `¿Reabrir el día ${fechaCierre}? Se volverán a permitir ediciones de sus turnos y movimientos.`
-      )
-    ) {
-      return;
-    }
     setCargando(true);
     setError(null);
     setExito(null);
@@ -258,7 +239,16 @@ export default function Snapshots() {
               Ver resumen
             </button>
             {esSuperadmin && (
-              <button className="btn btn--primary" onClick={manejarCerrarDia} disabled={cargando || !fecha}>
+              <button
+                className="btn btn--primary"
+                onClick={() =>
+                  pedirConfirmacion(
+                    "cerrar",
+                    `¿Cerrar el día ${fecha}? No se podrán editar sus turnos, transacciones, lecturas ni ventas, ni recalcular el snapshot.`
+                  )
+                }
+                disabled={cargando || !fecha}
+              >
                 Cerrar día
               </button>
             )}
@@ -273,12 +263,30 @@ export default function Snapshots() {
           <>
             <div style={{ display: "flex", gap: "var(--spacing-3)", alignItems: "center", flexWrap: "wrap" }}>
               {esSuperadmin && !cerradoDetalle && (
-                <button className="btn" onClick={manejarActualizar} disabled={cargando}>
+                <button
+                  className="btn"
+                  onClick={() =>
+                    pedirConfirmacion(
+                      "actualizar",
+                      `¿Releer los datos del ${detalle.fecha} y recalcular su snapshot? Se actualizará el guardado.`
+                    )
+                  }
+                  disabled={cargando}
+                >
                   Actualizar snapshot
                 </button>
               )}
               {esSuperadmin && cerradoDetalle && (
-                <button className="btn" onClick={manejarReabrir} disabled={cargando}>
+                <button
+                  className="btn"
+                  onClick={() =>
+                    pedirConfirmacion(
+                      "reabrir",
+                      `¿Reabrir el día ${detalle ? detalle.fecha : fecha}? Se volverán a permitir ediciones de sus turnos y movimientos.`
+                    )
+                  }
+                  disabled={cargando}
+                >
                   Reabrir día
                 </button>
               )}
@@ -329,7 +337,20 @@ export default function Snapshots() {
                     const diferenciaExcel =
                       validadoExcel === undefined ? null : validadoExcel.valor_total - t.valor_total;
                     const puedeValidar = esAdmin && origen === "guardado" && !cerradoDetalle;
-                    return (
+function pedirConfirmacion(accion, mensaje) {
+    setConfirmacion({ accion, mensaje });
+  }
+
+  function ejecutarConfirmacion() {
+    if (!confirmacion) return;
+    const { accion } = confirmacion;
+    setConfirmacion(null);
+    if (accion === "actualizar") manejarActualizar();
+    else if (accion === "cerrar") manejarCerrarDia();
+    else if (accion === "reabrir") manejarReabrir();
+  }
+
+  return (
                       <tr key={t.tipo}>
                         <td>
                           {t.nombre || t.tipo}{" "}
@@ -582,6 +603,13 @@ export default function Snapshots() {
           </table>
         )}
       </div>
+
+      <ConfirmModal
+        open={Boolean(confirmacion)}
+        mensaje={confirmacion?.mensaje || ""}
+        onConfirmar={ejecutarConfirmacion}
+        onCancelar={() => setConfirmacion(null)}
+      />
     </div>
   );
 }
