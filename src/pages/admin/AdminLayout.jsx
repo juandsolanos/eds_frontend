@@ -19,6 +19,7 @@ const NAV_ITEMS = [
 export default function AdminLayout() {
   const { token, usuario, logout } = useAuth();
   const [mostrarCambioPassword, setMostrarCambioPassword] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   const itemsVisibles = NAV_ITEMS.filter(
     (item) => !item.soloSuperadmin || usuario.rol === "superadministrador"
@@ -28,6 +29,14 @@ export default function AdminLayout() {
     <div className="app-shell">
       <header className="topbar">
         <div className="topbar__brand">
+          <button
+            className="admin-toggle"
+            onClick={() => setMenuAbierto(true)}
+            aria-label="Abrir menú"
+            type="button"
+          >
+            ☰
+          </button>
           <span className="topbar__brand-mark mono">EDS</span>
           <span style={{ color: "var(--text-muted)" }}>Panel de administración</span>
         </div>
@@ -52,37 +61,24 @@ export default function AdminLayout() {
         onGuardar={(actual, nueva) => api.cambiarMiPassword(token, actual, nueva)}
       />
 
-      <div style={{ display: "flex", flex: 1 }}>
-        <nav
-          style={{
-            width: 200,
-            borderRight: "1px solid var(--border)",
-            padding: "var(--spacing-6) var(--spacing-4)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--spacing-1)",
-          }}
-        >
+      <div className="admin-layout">
+        {menuAbierto && <div className="admin-backdrop" onClick={() => setMenuAbierto(false)} />}
+        <nav className={`admin-nav ${menuAbierto ? "admin-nav--abierto" : ""}`}>
           {itemsVisibles.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              style={({ isActive }) => ({
-                padding: "var(--spacing-3)",
-                borderRadius: "var(--radius-sm)",
-                color: isActive ? "var(--accent)" : "var(--text-muted)",
-                background: isActive ? "var(--accent-soft)" : "transparent",
-                textDecoration: "none",
-                fontSize: "0.9rem",
-                fontWeight: 600,
-              })}
+              className={({ isActive }) =>
+                `admin-nav__link${isActive ? " admin-nav__link--activo" : ""}`
+              }
+              onClick={() => setMenuAbierto(false)}
             >
               {item.label}
             </NavLink>
           ))}
         </nav>
 
-        <main className="main" style={{ margin: 0, maxWidth: "none" }}>
+        <main className="admin-main">
           <Outlet />
         </main>
       </div>
