@@ -10,8 +10,8 @@ function formatoFecha(iso) {
 
 function colorBalance(balance) {
   const n = Number(balance ?? 0);
-  if (n > 0) return "#ef4444";
-  if (n < 0) return "#22c55e";
+  if (n > 0) return "var(--danger)";
+  if (n < 0) return "var(--success)";
   return "var(--text-muted)";
 }
 

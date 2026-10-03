@@ -2,17 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 
-const ESTADO_LABEL = {
-  pendiente: "Pendiente",
-  en_proceso: "En proceso",
-  resuelta: "Resuelta",
-};
-
-const ESTADO_COLOR = {
-  pendiente: "#f97316",
-  en_proceso: "#3b82f6",
-  resuelta: "#10b981",
-};
+import { ALERTA_ESTADO_LABELS, ALERTA_ESTADO_COLORS } from "../../utils/estados";
 
 export default function Alertas() {
   const { token, usuario } = useAuth();
@@ -127,12 +117,12 @@ export default function Alertas() {
                   <td>
                     <span
                       style={{
-                        color: ESTADO_COLOR[a.estado] || "#6b7280",
+                        color: ALERTA_ESTADO_COLORS[a.estado] || "var(--text-muted)",
                         fontWeight: 600,
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {ESTADO_LABEL[a.estado] || a.estado}
+                      {ALERTA_ESTADO_LABELS[a.estado] || a.estado}
                     </span>
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>{a.origen_tipo}</td>
@@ -172,11 +162,11 @@ export default function Alertas() {
               <div style={{ display: "flex", gap: "var(--spacing-4)", flexWrap: "wrap" }}>
                 <span
                   style={{
-                    color: ESTADO_COLOR[verDetalle.estado] || "#6b7280",
+                    color: ALERTA_ESTADO_COLORS[verDetalle.estado] || "var(--text-muted)",
                     fontWeight: 600,
                   }}
                 >
-                  {ESTADO_LABEL[verDetalle.estado] || verDetalle.estado}
+                  {ALERTA_ESTADO_LABELS[verDetalle.estado] || verDetalle.estado}
                 </span>
                 <span>{verDetalle.origen_tipo}</span>
                 <span>{verDetalle.tipo}</span>

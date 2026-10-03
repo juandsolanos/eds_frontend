@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
@@ -76,6 +76,13 @@ export default function OperarioPanel() {
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+
+  // Un único temporizador para el mensaje de éxito (ver Turnos.jsx): evita
+  // que un timeout anterior borre el mensaje nuevo y que sobreviva al
+  // desmontaje del panel.
+  const refTimerMensaje = useRef(null);
+
+  useEffect(() => () => clearTimeout(refTimerMensaje.current), []);
   const [resumenAbierto, setResumenAbierto] = useState(false);
   const [resumenEnCierre, setResumenEnCierre] = useState(false);
   const [editandoLectura, setEditandoLectura] = useState(null);
@@ -314,7 +321,8 @@ export default function OperarioPanel() {
 
   function mostrarExito(texto) {
     setMensaje({ tipo: "success", texto });
-    setTimeout(() => setMensaje(null), 3000);
+    clearTimeout(refTimerMensaje.current);
+    refTimerMensaje.current = setTimeout(() => setMensaje(null), 3000);
   }
 
   async function manejarSolicitarAbrir() {
@@ -1142,7 +1150,7 @@ export default function OperarioPanel() {
         )}
 
         {!modoAdmin && turnoEnRevision && (
-          <div className="card" style={{ borderColor: "#f97316" }}>
+          <div className="card" style={{ borderColor: "var(--warning)" }}>
             <h3 style={{ marginBottom: "var(--spacing-4)" }}>
               Revisión del turno {turnoEnRevision.id} — Isla {turnoEnRevision.isla}
             </h3>
@@ -1169,7 +1177,7 @@ export default function OperarioPanel() {
                         key: "revisada",
                         label: "Revisada",
                         render: (f) => (
-                          <span style={{ color: f.revisada ? "#10b981" : "#6b7280", fontWeight: 600 }}>
+                          <span style={{ color: f.revisada ? "var(--success)" : "var(--text-muted)", fontWeight: 600 }}>
                             {f.revisada ? "Vista" : "Sin revisar"}
                           </span>
                         ),
@@ -1250,7 +1258,7 @@ export default function OperarioPanel() {
                   Levantar alerta de inventario
                 </button>
               ) : (
-                <div className="card" style={{ borderColor: "#f59e0b" }}>
+                <div className="card" style={{ borderColor: "var(--warning)" }}>
                   <div className="field">
                     <label htmlFor="alerta_producto">Producto</label>
                     <div style={{ display: "flex", gap: "var(--spacing-2)", flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -1319,7 +1327,7 @@ export default function OperarioPanel() {
                             key: "diferencia",
                             label: "Diferencia",
                             render: (f) => (
-                              <span style={{ color: f.diferencia !== 0 ? "#ef4444" : "#10b981", fontWeight: 600 }}>
+                              <span style={{ color: f.diferencia !== 0 ? "var(--danger)" : "var(--success)", fontWeight: 600 }}>
                                 {formatCant(f.diferencia)}
                               </span>
                             ),

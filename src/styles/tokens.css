@@ -12,6 +12,10 @@
   --success-soft: rgba(76, 175, 109, 0.14);
   --danger: #e5484d;
   --danger-soft: rgba(229, 72, 77, 0.14);
+  --warning: #f59e0b;
+  --warning-soft: rgba(245, 158, 11, 0.14);
+  --info: #3b82f6;
+  --info-soft: rgba(59, 130, 246, 0.14);
 
   /* Tipografía */
   --font-display: "Space Grotesk", sans-serif;

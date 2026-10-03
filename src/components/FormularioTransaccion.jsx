@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import InputMiles from "./InputMiles";
 import { formatMoney } from "../utils/format";
 
@@ -18,13 +18,22 @@ export default function FormularioTransaccion({
   const [clienteId, setClienteId] = useState("");
   const [comentarios, setComentarios] = useState("");
 
-  const clientesFiltrados = mostrarCliente
-    ? (clientes || []).filter(
-        (c) =>
-          (c.creditos || []).includes(tipo) ||
-          (inicial && String(c.id) === String(inicial.cliente_id))
-      )
-    : [];
+  // `inicial` es un objeto que el padre reconstruye en cada render: usarlo
+  // como dependencia reiniciaba el formulario continuamente. Trabajamos con
+  // primitivos para que los efectos solo corran cuando cambia el registro.
+  const tipoInicial = inicial?.tipo ?? null;
+  const valorInicial = inicial?.valor ?? null;
+  const clienteIdInicial = inicial?.cliente_id ?? null;
+  const tipoPorDefecto = tipos.length > 0 ? tipos[0].id : "";
+
+  const clientesFiltrados = useMemo(() => {
+    if (!mostrarCliente) return [];
+    return (clientes || []).filter(
+      (c) =>
+        (c.creditos || []).includes(tipo) ||
+        (clienteIdInicial != null && String(c.id) === String(clienteIdInicial))
+    );
+  }, [mostrarCliente, clientes, tipo, clienteIdInicial]);
 
   const esMinorista = tipo === "minorista";
   const clienteSel = clientesFiltrados.find((c) => String(c.id) === String(clienteId)) || null;
@@ -32,8 +41,8 @@ export default function FormularioTransaccion({
   // Al editar una transacción minorista del mismo cliente, su valor ya está
   // incluido en el balance: lo descontamos para calcular el disponible real.
   const valorIncluido =
-    esEdicion && inicial?.tipo === "minorista" && String(inicial?.cliente_id) === String(clienteId)
-      ? Number(inicial.valor)
+    esEdicion && tipoInicial === "minorista" && clienteIdInicial != null && String(clienteIdInicial) === String(clienteId)
+      ? Number(valorInicial)
       : 0;
   const balanceBase = clienteSel ? Number(clienteSel.balance) - valorIncluido : 0;
   const disponible = clienteSel ? Number(clienteSel.deuda_permitida) - balanceBase : 0;
@@ -42,25 +51,24 @@ export default function FormularioTransaccion({
   const faltaCliente = esMinorista && !clienteId;
 
   useEffect(() => {
-    if (inicial) {
-      setTipo(String(inicial.tipo));
-      setValor(String(inicial.valor));
-      setClienteId(inicial.cliente_id != null ? String(inicial.cliente_id) : "");
-      setComentarios("");
+    if (esEdicion) {
+      setTipo(String(tipoInicial));
+      setValor(String(valorInicial));
+      setClienteId(clienteIdInicial != null ? String(clienteIdInicial) : "");
     } else {
-      setTipo(tipos.length > 0 ? tipos[0].id : "");
+      setTipo(tipoPorDefecto);
       setValor("");
       setClienteId("");
-      setComentarios("");
     }
-  }, [inicial]);
+    setComentarios("");
+  }, [esEdicion, tipoInicial, valorInicial, clienteIdInicial, tipoPorDefecto]);
 
   useEffect(() => {
     if (!mostrarCliente) return;
-    if (esEdicion && inicial?.cliente_id != null) return;
+    if (esEdicion && clienteIdInicial != null) return;
     const sigueHabilitado = clientesFiltrados.some((c) => String(c.id) === String(clienteId));
     if (clienteId && !sigueHabilitado) setClienteId("");
-  }, [tipo, mostrarCliente, clientesFiltrados, clienteId, esEdicion, inicial]);
+  }, [tipo, mostrarCliente, clientesFiltrados, clienteId, esEdicion, clienteIdInicial]);
 
   function limpiar() {
     setValor("");
@@ -143,10 +151,10 @@ export default function FormularioTransaccion({
               </small>
             )}
             {faltaCliente && (
-              <small style={{ color: "#ef4444" }}>Debes seleccionar un cliente para Minorista.</small>
+              <small style={{ color: "var(--danger)" }}>Debes seleccionar un cliente para Minorista.</small>
             )}
             {excedeLimite && (
-              <small style={{ color: "#ef4444" }}>
+              <small style={{ color: "var(--danger)" }}>
                 El valor supera la deuda permitida del cliente (disponible: {formatMoney(disponible)}).
                 Un superadministrador debe ampliar la deuda permitida.
               </small>

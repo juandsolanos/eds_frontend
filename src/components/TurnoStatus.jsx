@@ -1,18 +1,4 @@
-const ESTADO_LABELS = {
-  creado: "Creado",
-  en_espera: "En espera",
-  abierto: "Abierto",
-  en_revision: "En revisión",
-  cerrado: "Cerrado",
-};
-
-const ESTADO_COLORS = {
-  creado: "#f59e0b",
-  en_espera: "#3b82f6",
-  abierto: "#10b981",
-  en_revision: "#f97316",
-  cerrado: "#6b7280",
-};
+import { TURNO_ESTADO_LABELS, TURNO_ESTADO_COLORS } from "../utils/estados";
 
 export default function TurnoStatus({ turno, turnosDisponibles, onAbrir, onCerrar, onVerResumen, onSolicitarAbrir, cargando, bloquearAbrir = false, mensajeBloqueo = "" }) {
   if (turno) {
@@ -25,13 +11,13 @@ export default function TurnoStatus({ turno, turnosDisponibles, onAbrir, onCerra
         <span
           className="pump-display__indicator"
           style={{
-            background: ESTADO_COLORS[turno.estado] || "#6b7280",
+            background: TURNO_ESTADO_COLORS[turno.estado] || "var(--text-muted)",
             animation: esAbierto ? "pulse 2s infinite" : undefined,
           }}
         />
         <div className="pump-display__body">
           <div className="pump-display__label">
-            Turno {ESTADO_LABELS[turno.estado] || turno.estado}
+            Turno {TURNO_ESTADO_LABELS[turno.estado] || turno.estado}
           </div>
           <div className="pump-display__value mono">{turno.id}</div>
           <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
@@ -59,7 +45,7 @@ export default function TurnoStatus({ turno, turnosDisponibles, onAbrir, onCerra
               {cargando ? "Abriendo..." : "Abrir turno"}
             </button>
             {bloquearAbrir && (
-              <div style={{ fontSize: "0.8rem", color: "#f59e0b", maxWidth: 320, textAlign: "right" }}>
+              <div style={{ fontSize: "0.8rem", color: "var(--warning)", maxWidth: 320, textAlign: "right" }}>
                 {mensajeBloqueo}
               </div>
             )}

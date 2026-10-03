@@ -1,16 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
-
-const ESTADO_COLORS = {
-  creado: "#f59e0b",
-  en_espera: "#3b82f6",
-  abierto: "#10b981",
-  en_revision: "#f97316",
-  cerrado: "#6b7280",
-};
-
-const ESTADOS_VALIDOS = ["creado", "en_espera", "abierto", "en_revision", "cerrado"];
+import { TURNO_ESTADO_COLORS, TURNO_ESTADOS_VALIDOS } from "../../utils/estados";
 
 const btnBase = {
   padding: "4px 10px",
@@ -53,6 +44,13 @@ export default function Turnos() {
 
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+
+  // Un único temporizador para el mensaje de éxito: si dejamos varios vivos,
+  // el de un mensaje anterior borra el nuevo antes de tiempo, y además
+  // sobreviven al desmontaje del componente.
+  const refTimerMensaje = useRef(null);
+
+  useEffect(() => () => clearTimeout(refTimerMensaje.current), []);
 
   // Mapa id -> nombre de operario para mostrar el nombre del responsable
   // en la tabla (el backend solo devuelve el id). Si el operario ya no
@@ -108,7 +106,8 @@ export default function Turnos() {
 
   function mostrarExito(texto) {
     setMensaje({ tipo: "success", texto });
-    setTimeout(() => setMensaje(null), 3000);
+    clearTimeout(refTimerMensaje.current);
+    refTimerMensaje.current = setTimeout(() => setMensaje(null), 3000);
   }
 
   function limpiarFormularioCreacion() {
@@ -344,7 +343,7 @@ export default function Turnos() {
                       fontSize: "0.8rem",
                       fontWeight: 600,
                       color: "#fff",
-                      background: ESTADO_COLORS[t.estado] || "#6b7280",
+                      background: TURNO_ESTADO_COLORS[t.estado] || "var(--text-muted)",
                     }}>
                       {t.estado}
                     </span>
@@ -452,7 +451,7 @@ export default function Turnos() {
                 onChange={(e) => setNuevoEstado(e.target.value)}
                 style={{ minWidth: 200 }}
               >
-                {ESTADOS_VALIDOS.map((e) => (
+                {TURNO_ESTADOS_VALIDOS.map((e) => (
                   <option key={e} value={e}>
                     {e}
                   </option>

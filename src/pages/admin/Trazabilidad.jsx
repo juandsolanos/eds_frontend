@@ -83,7 +83,7 @@ export default function Trazabilidad() {
             key: "accion",
             label: "Acción",
             render: (h) => (
-              <span style={{ color: h.accion === "anular" ? "#ef4444" : "#2563eb", fontWeight: 600 }}>
+              <span style={{ color: h.accion === "anular" ? "var(--danger)" : "var(--info)", fontWeight: 600 }}>
                 {h.accion === "anular" ? "Anulada" : "Editada"}
               </span>
             ),
