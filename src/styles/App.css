@@ -899,6 +899,16 @@ select:disabled {
   cursor: not-allowed;
 }
 
+/* -------------------- Foco visible --------------------
+   Red de seguridad global: todo elemento enfocable muestra anillo cuando
+   se navega con teclado. Los campos de formulario además lo muestran siempre
+   (sus reglas :focus propias), porque en un input el foco no siempre es
+   distinguible visualmente. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* -------------------- Multi-selección de tipos de crédito -------------------- */
 .multiselect {
   display: flex;

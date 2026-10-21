@@ -268,8 +268,8 @@ export default function Snapshots() {
           </div>
         </div>
 
-        {error && <div className="alert alert--error">{error}</div>}
-        {exito && <div className="alert alert--success">{exito}</div>}
+        {error && <div className="alert alert--error" role="alert">{error}</div>}
+        {exito && <div className="alert alert--success" role="status">{exito}</div>}
         {cargando && <div className="empty-state">Cargando...</div>}
 
         {!cargando && detalle && (

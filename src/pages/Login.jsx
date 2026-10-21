@@ -25,7 +25,7 @@ export default function Login() {
         </h1>
         <p className="login-card__subtitle">Inicia sesión para registrar tu turno.</p>
 
-        {error && <div className="alert alert--error">{error}</div>}
+        {error && <div className="alert alert--error" role="alert">{error}</div>}
 
         <form onSubmit={manejarSubmit}>
           <div className="field">

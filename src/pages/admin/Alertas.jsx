@@ -90,7 +90,7 @@ export default function Alertas() {
         <h2>Alertas</h2>
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
 
       <div className="card">
         <div className="card__header">

@@ -41,7 +41,7 @@ export default function HistorialPrecios() {
         />
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
 
       <RegistrosTabla
         columnas={[

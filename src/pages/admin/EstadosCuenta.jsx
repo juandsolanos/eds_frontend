@@ -153,8 +153,8 @@ export default function EstadosCuenta() {
         La deuda permitida {esSuperadmin ? "la puedes modificar" : "solo la modifica un superadministrador"}.
       </p>
 
-      {error && <div className="alert alert--error">{error}</div>}
-      {aviso && <div className="alert alert--success">{aviso}</div>}
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
+      {aviso && <div className="alert alert--success" role="status">{aviso}</div>}
 
       <div style={{ overflowX: "auto" }}>
         <table className="table">

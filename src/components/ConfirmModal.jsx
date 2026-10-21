@@ -1,40 +1,29 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useId } from "react";
+import { useModalA11y } from "../hooks/useModalA11y";
 
 export default function ConfirmModal({ open, mensaje, textoLabel, onConfirmar, onCancelar }) {
-  const cancelarRef = useRef(null);
   const [texto, setTexto] = useState("");
-
-  useEffect(() => {
-    if (open && cancelarRef.current) {
-      cancelarRef.current.focus();
-    }
-  }, [open]);
+  const idTexto = useId();
+  const refModal = useModalA11y({ abierto: open, onCerrar: onCancelar, etiqueta: "Confirmar acción" });
 
   useEffect(() => {
     if (open) setTexto("");
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    function manejarTecla(e) {
-      if (e.key === "Escape") onCancelar();
-    }
-    document.addEventListener("keydown", manejarTecla);
-    return () => document.removeEventListener("keydown", manejarTecla);
-  }, [open, onCancelar]);
-
   if (!open) return null;
 
   return (
     <div className="modal-overlay" onClick={onCancelar}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <p className="modal__mensaje">{mensaje}</p>
+      <div ref={refModal} className="modal" onClick={(e) => e.stopPropagation()}>
+        <p className="modal__mensaje" data-titulo-modal>
+          {mensaje}
+        </p>
 
         {textoLabel && (
           <div className="field" style={{ marginBottom: "var(--spacing-4)" }}>
-            <label htmlFor="modal-texto">{textoLabel}</label>
+            <label htmlFor={idTexto}>{textoLabel}</label>
             <input
-              id="modal-texto"
+              id={idTexto}
               type="text"
               placeholder="Opcional..."
               value={texto}
@@ -44,10 +33,10 @@ export default function ConfirmModal({ open, mensaje, textoLabel, onConfirmar, o
         )}
 
         <div className="modal__acciones">
-          <button ref={cancelarRef} className="btn btn--ghost" onClick={onCancelar}>
+          <button type="button" data-foco-inicial className="btn btn--ghost" onClick={onCancelar}>
             Cancelar
           </button>
-          <button className="btn btn--danger" onClick={() => onConfirmar(texto)}>
+          <button type="button" className="btn btn--danger" onClick={() => onConfirmar(texto)}>
             Confirmar
           </button>
         </div>

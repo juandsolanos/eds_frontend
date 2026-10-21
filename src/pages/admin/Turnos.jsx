@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import { TURNO_ESTADO_COLORS, TURNO_ESTADOS_VALIDOS } from "../../utils/estados";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 const btnBase = {
   padding: "4px 10px",
@@ -242,7 +243,10 @@ export default function Turnos() {
       <h2 style={{ marginBottom: "var(--spacing-6)" }}>Gestión de turnos</h2>
 
       {mensaje && (
-        <div className={`alert alert--${mensaje.tipo === "error" ? "error" : "success"}`}>
+        <div
+          className={`alert alert--${mensaje.tipo === "error" ? "error" : "success"}`}
+          role={mensaje.tipo === "error" ? "alert" : "status"}
+        >
           {mensaje.texto}
         </div>
       )}
@@ -373,7 +377,7 @@ export default function Turnos() {
       {/* Modal editar campos */}
       {editando && (
         <Modal onClose={() => setEditando(null)}>
-          <h3 style={{ marginBottom: "var(--spacing-4)" }}>Editar turno {editando.id}</h3>
+          <h3 data-titulo-modal style={{ marginBottom: "var(--spacing-4)" }}>Editar turno {editando.id}</h3>
           <form onSubmit={handleEditarCampos} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Isla</label>
@@ -412,7 +416,7 @@ export default function Turnos() {
       {/* Modal cambiar responsable */}
       {responsableTarget && (
         <Modal onClose={() => setResponsableTarget(null)}>
-          <h3 style={{ marginBottom: "var(--spacing-4)" }}>Cambiar responsable - {responsableTarget.id}</h3>
+          <h3 data-titulo-modal style={{ marginBottom: "var(--spacing-4)" }}>Cambiar responsable - {responsableTarget.id}</h3>
           <form onSubmit={handleAsignarResponsable} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Operario</label>
@@ -442,7 +446,7 @@ export default function Turnos() {
       {/* Modal cambiar estado */}
       {estadoTarget && (
         <Modal onClose={() => setEstadoTarget(null)}>
-          <h3 style={{ marginBottom: "var(--spacing-4)" }}>Cambiar estado - {estadoTarget.id}</h3>
+          <h3 data-titulo-modal style={{ marginBottom: "var(--spacing-4)" }}>Cambiar estado - {estadoTarget.id}</h3>
           <form onSubmit={handleCambiarEstado} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Estado</label>
@@ -472,6 +476,10 @@ export default function Turnos() {
 }
 
 function Modal({ children, onClose }) {
+  // El padre solo renderiza este Modal cuando hay algo que mostrar, así que
+  // "abierto" es siempre true: el foco se restaura al desmontarlo.
+  const refModal = useModalA11y({ abierto: true, onCerrar: onClose });
+
   return (
     <div
       onClick={onClose}
@@ -482,6 +490,7 @@ function Modal({ children, onClose }) {
       }}
     >
       <div
+        ref={refModal}
         onClick={(e) => e.stopPropagation()}
         className="card"
         style={{ minWidth: 360, maxWidth: 480, width: "100%" }}

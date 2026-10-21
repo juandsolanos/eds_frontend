@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { useModalA11y } from "../hooks/useModalA11y";
 
 /**
  * Modal para cambiar/establecer una contraseña.
@@ -21,7 +22,7 @@ export default function CambioPasswordModal({
   const [confirmacion, setConfirmacion] = useState("");
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
-  const primeraRef = useRef(null);
+  const refModal = useModalA11y({ abierto: open, onCerrar });
 
   useEffect(() => {
     if (open) {
@@ -29,18 +30,8 @@ export default function CambioPasswordModal({
       setNueva("");
       setConfirmacion("");
       setError(null);
-      primeraRef.current?.focus();
     }
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    function manejarTecla(e) {
-      if (e.key === "Escape") onCerrar();
-    }
-    document.addEventListener("keydown", manejarTecla);
-    return () => document.removeEventListener("keydown", manejarTecla);
-  }, [open, onCerrar]);
 
   if (!open) return null;
 
@@ -68,15 +59,15 @@ export default function CambioPasswordModal({
 
   return (
     <div className="modal-overlay" onClick={onCerrar}>
-      <div className="modal modal--form" onClick={(e) => e.stopPropagation()}>
+      <div ref={refModal} className="modal modal--form" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
-          <h3 className="modal__title">{titulo}</h3>
-          <button className="modal__close" onClick={onCerrar} aria-label="Cerrar">
+          <h3 className="modal__title" data-titulo-modal>{titulo}</h3>
+          <button type="button" className="modal__close" onClick={onCerrar} aria-label="Cerrar">
             ×
           </button>
         </div>
 
-        {error && <div className="alert alert--error">{error}</div>}
+        {error && <div className="alert alert--error" role="alert">{error}</div>}
 
         <form onSubmit={manejarSubmit}>
           {requiereActual && (
@@ -84,7 +75,7 @@ export default function CambioPasswordModal({
               <label htmlFor="pass-actual">Contraseña actual</label>
               <input
                 id="pass-actual"
-                ref={primeraRef}
+                data-foco-inicial={requiereActual ? "" : undefined}
                 type="password"
                 autoComplete="current-password"
                 value={actual}
@@ -97,7 +88,7 @@ export default function CambioPasswordModal({
             <label htmlFor="pass-nueva">Contraseña nueva</label>
             <input
               id="pass-nueva"
-              ref={requiereActual ? undefined : primeraRef}
+              data-foco-inicial={requiereActual ? undefined : ""}
               type="password"
               autoComplete="new-password"
               value={nueva}

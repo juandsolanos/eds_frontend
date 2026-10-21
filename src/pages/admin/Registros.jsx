@@ -80,7 +80,7 @@ export default function Registros() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
 
       <div className="card">
         <div className="card__header">

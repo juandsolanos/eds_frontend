@@ -259,7 +259,7 @@ export default function CatalogoManager({
         </div>
       </div>
 
-      {error && !formEnModal && <div className="alert alert--error">{error}</div>}
+      {error && !formEnModal && <div className="alert alert--error" role="alert">{error}</div>}
 
       {!formEnModal && (
         <form onSubmit={manejarSubmit} style={{ marginBottom: "var(--spacing-6)" }}>
@@ -343,7 +343,7 @@ export default function CatalogoManager({
               </button>
             </div>
 
-            {error && <div className="alert alert--error">{error}</div>}
+            {error && <div className="alert alert--error" role="alert">{error}</div>}
 
             <form onSubmit={manejarSubmit}>
               <div className="form-grid">

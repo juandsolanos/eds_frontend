@@ -760,7 +760,10 @@ export default function OperarioPanel() {
 
       <main className="main">
         {mensaje && (
-          <div className={`alert alert--${mensaje.tipo === "error" ? "error" : "success"}`}>
+          <div
+            className={`alert alert--${mensaje.tipo === "error" ? "error" : "success"}`}
+            role={mensaje.tipo === "error" ? "alert" : "status"}
+          >
             {mensaje.texto}
           </div>
         )}

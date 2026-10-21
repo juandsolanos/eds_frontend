@@ -73,7 +73,7 @@ export default function Trazabilidad() {
         Registro de ediciones y anulaciones de los movimientos de crédito y caja.
       </p>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
 
       <RegistrosTabla
         columnas={[

@@ -57,7 +57,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {error && <div className="alert alert--error">{error}</div>}
+        {error && <div className="alert alert--error" role="alert">{error}</div>}
         {cargando && <div className="empty-state">Cargando...</div>}
 
         {!cargando && reporte.length > 0 && (

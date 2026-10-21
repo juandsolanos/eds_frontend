@@ -183,7 +183,7 @@ export default function EntidadConUsuariosManager({
         <h3 className="card__title">{titulo}</h3>
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
 
       <form onSubmit={manejarSubmitEntidad} style={{ marginBottom: "var(--spacing-6)" }}>
         <div className="form-grid">
@@ -282,7 +282,7 @@ export default function EntidadConUsuariosManager({
               </button>
             </div>
 
-            {errorUsuario && <div className="alert alert--error">{errorUsuario}</div>}
+            {errorUsuario && <div className="alert alert--error" role="alert">{errorUsuario}</div>}
 
             {!usuarioVisible ? (
               <form onSubmit={manejarCrearUsuario}>

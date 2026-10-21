@@ -289,7 +289,7 @@ export default function FormularioLectura({
 
                 {errorFoto && (
                   <div className="field field--full">
-                    <div className="alert alert--error">{errorFoto}</div>
+                    <div className="alert alert--error" role="alert">{errorFoto}</div>
                   </div>
                 )}
 

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import RegistrosTabla from "./RegistrosTabla";
 import { formatMoney, formatVol, formatCant, unidadGranel } from "../utils/format";
+import { useModalA11y } from "../hooks/useModalA11y";
 
 export default function ResumenTurno({
   abierto,
@@ -19,27 +20,12 @@ export default function ResumenTurno({
   onConfirmarCierre,
   onCerrar,
 }) {
-  const cancelarRef = useRef(null);
   const [texto, setTexto] = useState("");
+  const refModal = useModalA11y({ abierto, onCerrar });
 
   useEffect(() => {
     if (abierto) setTexto("");
   }, [abierto]);
-
-  useEffect(() => {
-    if (abierto && cancelarRef.current) {
-      cancelarRef.current.focus();
-    }
-  }, [abierto]);
-
-  useEffect(() => {
-    if (!abierto) return;
-    function manejarTecla(e) {
-      if (e.key === "Escape") onCerrar();
-    }
-    document.addEventListener("keydown", manejarTecla);
-    return () => document.removeEventListener("keydown", manejarTecla);
-  }, [abierto, onCerrar]);
 
   if (!abierto) return null;
 
@@ -160,10 +146,10 @@ export default function ResumenTurno({
 
   return (
     <div className="modal-overlay" onClick={onCerrar}>
-      <div className="modal modal--form modal--resumen" onClick={(e) => e.stopPropagation()}>
+      <div ref={refModal} className="modal modal--form modal--resumen" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
-          <h3 className="modal__title">Resumen del turno {turno?.id}</h3>
-          <button ref={cancelarRef} className="modal__close" onClick={onCerrar} disabled={cargando} type="button">
+          <h3 className="modal__title" data-titulo-modal>Resumen del turno {turno?.id}</h3>
+          <button type="button" data-foco-inicial className="modal__close" onClick={onCerrar} disabled={cargando} aria-label="Cerrar">
             &times;
           </button>
         </div>

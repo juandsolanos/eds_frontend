@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
 import ConfirmModal from "../../components/ConfirmModal";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import { formatCant } from "../../utils/format";
 
 function formatoFecha(iso) {
@@ -219,8 +220,8 @@ export default function Inventario() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
-      {error && <div className="alert alert--error">{error}</div>}
-      {exito && <div className="alert alert--success">{exito}</div>}
+      {error && <div className="alert alert--error" role="alert">{error}</div>}
+      {exito && <div className="alert alert--success" role="status">{exito}</div>}
 
       <div className="card">
         <div className="card__header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--spacing-3)" }}>
@@ -297,7 +298,7 @@ export default function Inventario() {
         <Modal onClose={cerrarModal}>
           {modal.tipo === "mover" ? (
             <form onSubmit={confirmarMover}>
-              <h3 style={{ marginBottom: "var(--spacing-4)" }}>Mover producto a otra isla</h3>
+              <h3 data-titulo-modal style={{ marginBottom: "var(--spacing-4)" }}>Mover producto a otra isla</h3>
               <div className="field">
                 <label>Producto</label>
                 <input value={modal.fila.producto_nombre || modal.fila.codigo} readOnly />
@@ -369,7 +370,7 @@ export default function Inventario() {
             </form>
           ) : (
             <form onSubmit={confirmarAjuste}>
-              <h3 style={{ marginBottom: "var(--spacing-4)" }}>Ajustar inventario</h3>
+              <h3 data-titulo-modal style={{ marginBottom: "var(--spacing-4)" }}>Ajustar inventario</h3>
               <div className="field">
                 <label>Producto</label>
                 <input value={modal.fila.producto_nombre || modal.fila.codigo} readOnly />
@@ -427,6 +428,10 @@ export default function Inventario() {
 }
 
 function Modal({ children, onClose }) {
+  // El padre solo renderiza este Modal cuando hay algo que mostrar, así que
+  // "abierto" es siempre true: el foco se restaura al desmontarlo.
+  const refModal = useModalA11y({ abierto: true, onCerrar: onClose });
+
   return (
     <div
       onClick={onClose}
@@ -441,6 +446,7 @@ function Modal({ children, onClose }) {
       }}
     >
       <div
+        ref={refModal}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--surface)",
