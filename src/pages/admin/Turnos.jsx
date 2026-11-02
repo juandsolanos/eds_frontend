@@ -17,7 +17,8 @@ const btnBase = {
 
 export default function Turnos() {
   const { token, usuario } = useAuth();
-  const esSuperadmin = usuario.rol === "superadministrador";
+  const esAdmin =
+    usuario.rol === "administrador" || usuario.rol === "superadministrador";
 
   const [turnos, setTurnos] = useState([]);
   const [islas, setIslas] = useState([]);
@@ -31,8 +32,7 @@ export default function Turnos() {
 
   // Modal de editar campos
   const [editando, setEditando] = useState(null);
-  const [editIsla, setEditIsla] = useState("");
-  const [editInicio, setEditInicio] = useState("");
+  const [editHoraInicio, setEditHoraInicio] = useState("");
   const [editFinal, setEditFinal] = useState("");
 
   // Modal de cambiar responsable
@@ -161,14 +161,18 @@ export default function Turnos() {
   // --- Editar campos del turno ---
   function abrirEditar(turno) {
     setEditando(turno);
-    setEditIsla(turno.isla);
-    setEditInicio(toLocalDatetime(turno.inicio_ideal));
+    setEditHoraInicio(toLocalTime(turno.inicio_ideal));
     setEditFinal(toLocalDatetime(turno.final_ideal));
   }
 
   async function handleEditarCampos(e) {
     e.preventDefault();
-    const inicio = new Date(editInicio);
+    if (!editHoraInicio) {
+      mostrarError({ detail: "Debes indicar la hora de inicio del turno." });
+      return;
+    }
+    const fechaInicio = toLocalDate(editando.inicio_ideal);
+    const inicio = new Date(`${fechaInicio}T${editHoraInicio}`);
     const fin = new Date(editFinal);
     if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
       mostrarError({ detail: "Las fechas indicadas no son válidas." });
@@ -181,7 +185,6 @@ export default function Turnos() {
     setCargando(true);
     try {
       const datos = {
-        isla: Number(editIsla),
         inicio_ideal: inicio.toISOString(),
         final_ideal: fin.toISOString(),
       };
@@ -251,7 +254,7 @@ export default function Turnos() {
         </div>
       )}
 
-      {esSuperadmin && (
+      {esAdmin && (
         <div className="card" style={{ marginBottom: "var(--spacing-6)" }}>
           <h3 style={{ marginBottom: "var(--spacing-4)" }}>Crear turno</h3>
           <form onSubmit={handleCrearTurno} style={{ display: "flex", gap: "var(--spacing-4)", flexWrap: "wrap", alignItems: "flex-end" }}>
@@ -353,7 +356,7 @@ export default function Turnos() {
                     </span>
                   </td>
                   <td style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {esSuperadmin && t.estado !== "cerrado" && (
+                    {esAdmin && t.estado !== "cerrado" && (
                       <button style={btnBase} onClick={() => abrirEditar(t)}>
                         Editar
                       </button>
@@ -380,29 +383,34 @@ export default function Turnos() {
           <h3 data-titulo-modal style={{ marginBottom: "var(--spacing-4)" }}>Editar turno {editando.id}</h3>
           <form onSubmit={handleEditarCampos} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Isla</label>
-              <select
-                value={editIsla}
-                onChange={(e) => setEditIsla(e.target.value)}
-                required
-                style={{ minWidth: 120 }}
-              >
-                <option value="">Seleccionar...</option>
-                {islas.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    Isla {i.id}
-                  </option>
-                ))}
-              </select>
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>ID</label>
+              <input value={editando.id} readOnly className="mono" />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Inicio ideal</label>
-              <input type="datetime-local" value={editInicio} onChange={(e) => setEditInicio(e.target.value)} required />
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Isla</label>
+              <input value={`Isla ${editando.isla}`} readOnly />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Fecha de inicio</label>
+              <input type="date" value={toLocalDate(editando.inicio_ideal)} readOnly />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hora de inicio</label>
+              <input
+                type="time"
+                value={editHoraInicio}
+                onChange={(e) => setEditHoraInicio(e.target.value)}
+                required
+              />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Final ideal</label>
               <input type="datetime-local" value={editFinal} onChange={(e) => setEditFinal(e.target.value)} required />
             </div>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: 0 }}>
+              El ID, la isla y el día de inicio no se pueden modificar. Para cambiar la isla
+              o mover el turno a otro día, crea un nuevo turno.
+            </p>
             <div style={{ display: "flex", gap: "var(--spacing-3)", justifyContent: "flex-end" }}>
               <button type="button" style={btnBase} onClick={() => setEditando(null)}>Cancelar</button>
               <button className="btn btn--primary" type="submit" disabled={cargando}>
@@ -501,9 +509,21 @@ function Modal({ children, onClose }) {
   );
 }
 
-function toLocalDatetime(iso) {
+function toLocalDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function toLocalTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toLocalDatetime(iso) {
+  if (!iso) return "";
+  return `${toLocalDate(iso)}T${toLocalTime(iso)}`;
 }
