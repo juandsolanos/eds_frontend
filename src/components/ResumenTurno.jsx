@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import RegistrosTabla from "./RegistrosTabla";
+import EstadoTurnoBadge from "./EstadoTurnoBadge";
 import { formatMoney, formatVol, formatCant, unidadGranel } from "../utils/format";
 import { useModalA11y } from "../hooks/useModalA11y";
 
@@ -159,7 +160,7 @@ export default function ResumenTurno({
             Isla <strong>{turno?.isla}</strong>
           </span>
           {turno?.responsable && <span>Responsable: {turno.responsable}</span>}
-          <span className="mono">{turno?.estado}</span>
+          <EstadoTurnoBadge estado={turno?.estado} />
         </div>
 
         <section className="resumen-seccion">

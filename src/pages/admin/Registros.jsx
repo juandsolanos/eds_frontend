@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
 import RegistrosTabla from "../../components/RegistrosTabla";
+import EstadoTurnoBadge from "../../components/EstadoTurnoBadge";
 import { formatMoney, formatVol, formatCant, unidadGranel } from "../../utils/format";
 
 function formatoFecha(iso) {
@@ -101,8 +102,13 @@ export default function Registros() {
             { key: "tiempo_inicio", label: "Inicio", render: (t) => formatoFecha(t.tiempo_inicio) },
             {
               key: "tiempo_final",
+              label: "Final",
+              render: (t) => (t.tiempo_final ? formatoFecha(t.tiempo_final) : "—"),
+            },
+            {
+              key: "estado",
               label: "Estado",
-              render: (t) => (t.tiempo_final ? formatoFecha(t.tiempo_final) : "Activo"),
+              render: (t) => <EstadoTurnoBadge estado={t.estado} />,
             },
             {
               key: "_ver",

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
-import { TURNO_ESTADO_COLORS, TURNO_ESTADOS_VALIDOS } from "../../utils/estados";
+import { TURNO_ESTADOS_VALIDOS } from "../../utils/estados";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import EstadoTurnoBadge from "../../components/EstadoTurnoBadge";
 
 const btnBase = {
   padding: "4px 10px",
@@ -344,16 +345,7 @@ export default function Turnos() {
                   <td>{new Date(t.final_ideal).toLocaleString()}</td>
                   <td>{nombreResponsable(t.responsable)}</td>
                   <td>
-                    <span style={{
-                      padding: "2px 8px",
-                      borderRadius: 4,
-                      fontSize: "0.8rem",
-                      fontWeight: 600,
-                      color: "#fff",
-                      background: TURNO_ESTADO_COLORS[t.estado] || "var(--text-muted)",
-                    }}>
-                      {t.estado}
-                    </span>
+                    <EstadoTurnoBadge estado={t.estado} />
                   </td>
                   <td style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {esAdmin && t.estado !== "cerrado" && (
