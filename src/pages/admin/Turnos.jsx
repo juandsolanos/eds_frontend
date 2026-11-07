@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/client";
-import { TURNO_ESTADOS_VALIDOS } from "../../utils/estados";
+import { TURNO_ESTADOS_VALIDOS, TURNO_ESTADO_LABELS } from "../../utils/estados";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import EstadoTurnoBadge from "../../components/EstadoTurnoBadge";
 
@@ -455,12 +455,19 @@ export default function Turnos() {
                 onChange={(e) => setNuevoEstado(e.target.value)}
                 style={{ minWidth: 200 }}
               >
-                {TURNO_ESTADOS_VALIDOS.map((e) => (
+                {TURNO_ESTADOS_VALIDOS.filter(
+                  (e) => !(estadoTarget.estado === "abierto" && e === "cerrado")
+                ).map((e) => (
                   <option key={e} value={e}>
-                    {e}
+                    {TURNO_ESTADO_LABELS[e] || e}
                   </option>
                 ))}
               </select>
+              {estadoTarget.estado === "abierto" && (
+                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0 }}>
+                  Un turno abierto debe pasar por revisión antes de cerrarse.
+                </p>
+              )}
             </div>
             <div style={{ display: "flex", gap: "var(--spacing-3)", justifyContent: "flex-end" }}>
               <button type="button" style={btnBase} onClick={() => setEstadoTarget(null)}>Cancelar</button>
