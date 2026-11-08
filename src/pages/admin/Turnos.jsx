@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import { TURNO_ESTADOS_VALIDOS, TURNO_ESTADO_LABELS } from "../../utils/estados";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import EstadoTurnoBadge from "../../components/EstadoTurnoBadge";
+import SelectorHora24, { SelectorFechaHora24 } from "../../components/SelectorHora24";
 
 const btnBase = {
   padding: "4px 10px",
@@ -242,6 +243,11 @@ export default function Turnos() {
     }
   }
 
+  const resumenCreacion = resumenRango(inicioIdeal, finalIdeal);
+  const resumenEdicion = editando
+    ? resumenRango(`${toLocalDate(editando.inicio_ideal)}T${editHoraInicio}`, editFinal)
+    : null;
+
   return (
     <div>
       <h2 style={{ marginBottom: "var(--spacing-6)" }}>Gestión de turnos</h2>
@@ -277,21 +283,21 @@ export default function Turnos() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Inicio ideal *</label>
-              <input
-                type="datetime-local"
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Inicio ideal * (24 h)</label>
+              <SelectorFechaHora24
+                id="crear-inicio-ideal"
                 value={inicioIdeal}
-                onChange={(e) => setInicioIdeal(e.target.value)}
+                onChange={setInicioIdeal}
                 required
               />
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Final ideal *</label>
-              <input
-                type="datetime-local"
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Final ideal * (24 h)</label>
+              <SelectorFechaHora24
+                id="crear-final-ideal"
                 value={finalIdeal}
-                onChange={(e) => setFinalIdeal(e.target.value)}
+                onChange={setFinalIdeal}
                 required
               />
             </div>
@@ -316,6 +322,18 @@ export default function Turnos() {
               {cargando ? "Creando..." : "Crear turno"}
             </button>
           </form>
+          {resumenCreacion && (
+            <p
+              style={{
+                margin: "var(--spacing-3) 0 0",
+                fontSize: "0.85rem",
+                color: "var(--text-muted)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {resumenCreacion.texto}
+            </p>
+          )}
         </div>
       )}
 
@@ -387,18 +405,35 @@ export default function Turnos() {
               <input type="date" value={toLocalDate(editando.inicio_ideal)} readOnly />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hora de inicio</label>
-              <input
-                type="time"
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Hora de inicio (24 h)</label>
+              <SelectorHora24
+                id="editar-hora-inicio"
                 value={editHoraInicio}
-                onChange={(e) => setEditHoraInicio(e.target.value)}
+                onChange={setEditHoraInicio}
                 required
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-1)" }}>
-              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Final ideal</label>
-              <input type="datetime-local" value={editFinal} onChange={(e) => setEditFinal(e.target.value)} required />
+              <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>Final ideal (24 h)</label>
+              <SelectorFechaHora24
+                id="editar-final-ideal"
+                value={editFinal}
+                onChange={setEditFinal}
+                required
+              />
             </div>
+            {resumenEdicion && (
+              <p
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--text-muted)",
+                  margin: 0,
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {resumenEdicion.texto}
+              </p>
+            )}
             <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: 0 }}>
               El ID, la isla y el día de inicio no se pueden modificar. Para cambiar la isla
               o mover el turno a otro día, crea un nuevo turno.
@@ -525,4 +560,42 @@ function toLocalTime(iso) {
 function toLocalDatetime(iso) {
   if (!iso) return "";
   return `${toLocalDate(iso)}T${toLocalTime(iso)}`;
+}
+
+const formatoFechaHora24 = new Intl.DateTimeFormat("es-CO", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+function diferenciaDias(inicio, fin) {
+  const diaInicio = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+  const diaFin = new Date(fin.getFullYear(), fin.getMonth(), fin.getDate());
+  return Math.round((diaFin - diaInicio) / 86400000);
+}
+
+function resumenRango(valorInicio, valorFin) {
+  const inicio = new Date(valorInicio);
+  const fin = new Date(valorFin);
+  if (
+    !valorInicio ||
+    !valorFin ||
+    Number.isNaN(inicio.getTime()) ||
+    Number.isNaN(fin.getTime())
+  ) {
+    return null;
+  }
+
+  const dias = diferenciaDias(inicio, fin);
+  let aviso = "";
+  if (dias === 1) aviso = " (finaliza el día siguiente)";
+  else if (dias > 1) aviso = ` (finaliza ${dias} días después)`;
+  else if (dias < 0) aviso = " (el final es anterior al inicio)";
+
+  return {
+    texto: `Inicio: ${formatoFechaHora24.format(inicio)} → Fin: ${formatoFechaHora24.format(fin)}${aviso}`,
+  };
 }
