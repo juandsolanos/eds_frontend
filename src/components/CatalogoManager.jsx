@@ -25,7 +25,7 @@ export default function CatalogoManager({
 }) {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState(valoresIniciales);
   const [editando, setEditando] = useState(null); // id del item en edición, o null
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -37,6 +37,14 @@ export default function CatalogoManager({
 
   const necesitaCreditos = campos.some((c) => c.type === "multiselect-credito");
   const necesitaIslas = campos.some((c) => c.type === "select-islas");
+
+  function valoresIniciales() {
+    return Object.fromEntries(
+      campos
+        .filter((campo) => campo.valorInicial !== undefined)
+        .map((campo) => [campo.key, campo.valorInicial])
+    );
+  }
 
   const cargar = useCallback(async ({ signal } = {}) => {
     try {
@@ -73,7 +81,7 @@ export default function CatalogoManager({
   }, [cargar, cargarCreditos, cargarIslas, necesitaCreditos, necesitaIslas]);
 
   function limpiarForm() {
-    setForm({});
+    setForm(valoresIniciales());
     setEditando(null);
     setError(null);
   }

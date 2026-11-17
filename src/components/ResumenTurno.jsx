@@ -15,7 +15,6 @@ export default function ResumenTurno({
   clientes,
   productos,
   productosGranel,
-  mangueras = [],
   modoCierre = false,
   cargando = false,
   onConfirmarCierre,
@@ -42,15 +41,16 @@ export default function ResumenTurno({
   const transaccionesList = transacciones || [];
 
   function unidadCortoLectura(lectura) {
-    const manguera = mangueras.find((m) => m.id === Number(lectura.manguera_id));
-    const codigo = manguera ? String(manguera.codigo_combustible) : null;
-    return codigo ? unidadGranel(granelUnidadPorCodigo.get(codigo)).corto : "gal";
+    const codigo = lectura?.codigo_combustible;
+    return codigo ? unidadGranel(granelUnidadPorCodigo.get(String(codigo))).corto : "gal";
   }
 
   const lecturasConUnidad = lecturasList.map((l) => ({
     ...l,
     _cantidad: l.lectura_final - l.lectura_inicial,
     _unidadCorto: unidadCortoLectura(l),
+    _nombreMedidor:
+      l.tipo === "combustible" ? `Combustible ${l.codigo_combustible}` : `Manguera ${l.manguera_id}`,
   }));
 
   const subtotalesPorUnidad = lecturasConUnidad.reduce((acc, l) => {
@@ -90,7 +90,7 @@ export default function ResumenTurno({
     .reduce((acc, t) => acc + (t.valor || 0), 0);
 
   const columnasLecturas = [
-    { key: "manguera_id", label: "Manguera" },
+    { key: "medidor", label: "Medidor", render: (f) => f._nombreMedidor },
     {
       key: "cantidad",
       label: "Volumen",
@@ -164,7 +164,7 @@ export default function ResumenTurno({
         </div>
 
         <section className="resumen-seccion">
-          <h4 className="resumen-seccion__titulo">Lecturas de manguera</h4>
+          <h4 className="resumen-seccion__titulo">Lecturas</h4>
           <RegistrosTabla columnas={columnasLecturas} filas={lecturasConUnidad} vacio="Sin lecturas registradas." />
           {lecturasConUnidad.length > 0 && (
             <div className="resumen-total linea">

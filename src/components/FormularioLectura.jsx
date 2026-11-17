@@ -7,9 +7,15 @@ import { unidadGranel } from "../utils/format";
 
 const nfMiles = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 });
 
+function claveDeLectura(lectura) {
+  if (lectura?.tipo === "combustible") return `combustible:${lectura.codigo_combustible}`;
+  return `manguera:${lectura?.manguera_id}`;
+}
+
 export default function FormularioLectura({
-  mangueras,
-  lecturas,
+  mangueras = [],
+  combustibles = [],
+  lecturas = [],
   onRegistrar,
   cargando,
   productosGranel = [],
@@ -20,7 +26,7 @@ export default function FormularioLectura({
   const { token } = useAuth();
   const esEdicion = Boolean(inicial);
 
-  const [mangueraActiva, setMangueraActiva] = useState(null);
+  const [medidorActivo, setMedidorActivo] = useState(null);
   const [lecturaInicial, setLecturaInicial] = useState("");
   const [lecturaFinal, setLecturaFinal] = useState("");
   const [foto, setFoto] = useState(null);
@@ -44,11 +50,71 @@ export default function FormularioLectura({
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
   }, []);
 
-  const mangueraIdsLeidas = new Set((lecturas || []).map((l) => l.manguera_id));
+  const grupos = [];
+  const codigosConModo = new Set();
+  (combustibles || []).forEach((combustible) => {
+    const codigo = String(combustible.codigo_combustible);
+    codigosConModo.add(codigo);
+    if (combustible.modo_lectura === "combustible") {
+      grupos.push({
+        codigo,
+        nombre: combustible.nombre_combustible || codigo,
+        opciones: [
+          {
+            clave: `combustible:${codigo}`,
+            tipo: "combustible",
+            valor: combustible.codigo_combustible,
+            codigo_combustible: combustible.codigo_combustible,
+            nombre: combustible.nombre_combustible || combustible.codigo_combustible,
+            unidad: combustible.unidad,
+            ultima_lectura: combustible.ultima_lectura,
+          },
+        ],
+      });
+      return;
+    }
+    const opciones = (mangueras || [])
+      .filter((m) => String(m.codigo_combustible) === codigo)
+      .map((m) => ({
+        clave: `manguera:${m.id}`,
+        tipo: "manguera",
+        valor: m.id,
+        codigo_combustible: m.codigo_combustible,
+        nombre: m.nombre_combustible || combustible.nombre_combustible || m.codigo_combustible,
+        unidad: combustible.unidad,
+        ultima_lectura: m.ultima_lectura,
+      }));
+    if (opciones.length > 0) {
+      grupos.push({
+        codigo,
+        nombre: combustible.nombre_combustible || codigo,
+        opciones,
+      });
+    }
+  });
+  (mangueras || []).forEach((m) => {
+    const codigo = String(m.codigo_combustible);
+    if (codigosConModo.has(codigo)) return;
+    const opcion = {
+      clave: `manguera:${m.id}`,
+      tipo: "manguera",
+      valor: m.id,
+      codigo_combustible: m.codigo_combustible,
+      nombre: m.nombre_combustible || codigo,
+      ultima_lectura: m.ultima_lectura,
+    };
+    const grupo = grupos.find((g) => g.codigo === codigo);
+    if (grupo) grupo.opciones.push(opcion);
+    else grupos.push({ codigo, nombre: m.nombre_combustible || codigo, opciones: [opcion] });
+  });
+
+  const opciones = grupos.flatMap((grupo) => grupo.opciones);
+  const lecturasPorClave = new Map((lecturas || []).map((l) => [claveDeLectura(l), l]));
+  const opcionSeleccionada = opciones.find((o) => o.clave === medidorActivo);
 
   useEffect(() => {
     if (inicial) {
-      setMangueraActiva(inicial.manguera_id);
+      setMedidorActivo(claveDeLectura(inicial));
       setLecturaInicial(String(inicial.lectura_inicial));
       setLecturaFinal(String(inicial.lectura_final));
       setComentarios("");
@@ -57,7 +123,7 @@ export default function FormularioLectura({
       setErrorFoto(null);
       setCamaraAbierta(false);
     } else {
-      setMangueraActiva(null);
+      setMedidorActivo(null);
       setLecturaInicial("");
       setLecturaFinal("");
       setComentarios("");
@@ -68,9 +134,9 @@ export default function FormularioLectura({
     }
   }, [inicial]);
 
-  function seleccionarManguera(manguera) {
-    setMangueraActiva(manguera.id);
-    setLecturaInicial(String(manguera.ultima_lectura || 0));
+  function seleccionarOpcion(opcion) {
+    setMedidorActivo(opcion.clave);
+    setLecturaInicial(String(opcion.ultima_lectura || 0));
     setLecturaFinal("");
     setFoto(null);
     setPreviewUrl(null);
@@ -82,7 +148,7 @@ export default function FormularioLectura({
       onCancelarEditar?.();
       return;
     }
-    setMangueraActiva(null);
+    setMedidorActivo(null);
     setLecturaInicial("");
     setLecturaFinal("");
     setComentarios("");
@@ -93,23 +159,39 @@ export default function FormularioLectura({
   }
 
   useEffect(() => {
-    if (mangueraActiva && cancelarRef.current) {
+    if (medidorActivo && cancelarRef.current) {
       cancelarRef.current.focus();
     }
-  }, [mangueraActiva]);
+  }, [medidorActivo]);
 
   useEffect(() => {
-    if (!mangueraActiva) return;
+    if (!medidorActivo) return;
     function manejarTecla(e) {
       if (e.key === "Escape") cancelar();
     }
     document.addEventListener("keydown", manejarTecla);
     return () => document.removeEventListener("keydown", manejarTecla);
-  }, [mangueraActiva, esEdicion]);
+  }, [medidorActivo, esEdicion]);
+
+  function unidadDeOpcion(opcion) {
+    const producto = (productosGranel || []).find(
+      (p) => String(p.codigo) === String(opcion.codigo_combustible)
+    );
+    return unidadGranel(opcion.unidad || producto?.unidad);
+  }
+
+  function etiquetaOpcion(opcion) {
+    if (opcion.tipo === "combustible") {
+      return `Combustible ${opcion.codigo_combustible} — ${opcion.nombre}`;
+    }
+    return `Manguera ${opcion.valor} — ${opcion.nombre}`;
+  }
 
   async function manejarSubmit(evento) {
     evento.preventDefault();
     setErrorFoto(null);
+
+    if (!opcionSeleccionada) return;
 
     if (!esEdicion && !foto) {
       setErrorFoto("Debes tomar una foto del medidor con la cámara como evidencia.");
@@ -132,12 +214,17 @@ export default function FormularioLectura({
     }
 
     const datos = {
-      manguera_id: mangueraActiva,
       lectura_inicial: Number(parseMiles(String(lecturaInicial))),
       lectura_final: Number(parseMiles(String(lecturaFinal))),
       foto_url: fotoUrl,
       comentarios: comentarios.trim() ? comentarios.trim() : null,
     };
+
+    if (opcionSeleccionada.tipo === "combustible") {
+      datos.codigo_combustible = opcionSeleccionada.valor;
+    } else {
+      datos.manguera_id = opcionSeleccionada.valor;
+    }
 
     if (esEdicion) {
       const ok = await onActualizar(datos);
@@ -149,69 +236,66 @@ export default function FormularioLectura({
     if (ok) cancelar();
   }
 
-  const mangueraSeleccionada = mangueras.find((m) => m.id === mangueraActiva);
-
-  function unidadDeManguera(manguera) {
-    const producto = (productosGranel || []).find((p) => p.codigo === String(manguera.codigo_combustible));
-    return unidadGranel(producto?.unidad);
-  }
-
   return (
     <div>
       <div className="manguera-list">
-        {mangueras.map((m) => {
-          const leida = mangueraIdsLeidas.has(m.id);
-
-          return (
+        {grupos.map((grupo) => (
+          <div key={grupo.codigo} style={{ marginBottom: "var(--spacing-4)" }}>
             <div
-              key={m.id}
-              className={`manguera-item ${leida ? "manguera-item--leida" : ""}`}
+              className="manguera-item__nombre"
+              style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "var(--spacing-2)" }}
             >
-              <div className="manguera-item__info">
-                <span className={`manguera-item__badge ${leida ? "manguera-item__badge--ok" : "manguera-item__badge--pend"}`}>
-                  {leida ? "\u2713" : "\u25CB"}
-                </span>
-                <div>
-                  <div className="manguera-item__nombre">
-                    Manguera {m.id} &mdash; {m.nombre_combustible || m.codigo_combustible}
-                  </div>
-                  {leida && (
-                    <div className="manguera-item__resumen">
-                      {(() => {
-                        const lectura = lecturas.find((l) => l.manguera_id === m.id);
-                        return lectura
-                          ? `${nfMiles.format(lectura.lectura_final - lectura.lectura_inicial)} ${unidadDeManguera(m).corto}`
-                          : null;
-                      })()}
+              {grupo.nombre} ({grupo.codigo})
+            </div>
+            {grupo.opciones.map((opcion) => {
+              const leida = lecturasPorClave.has(opcion.clave);
+              const lectura = lecturasPorClave.get(opcion.clave);
+
+              return (
+                <div
+                  key={opcion.clave}
+                  className={`manguera-item ${leida ? "manguera-item--leida" : ""}`}
+                >
+                  <div className="manguera-item__info">
+                    <span className={`manguera-item__badge ${leida ? "manguera-item__badge--ok" : "manguera-item__badge--pend"}`}>
+                      {leida ? "\u2713" : "\u25CB"}
+                    </span>
+                    <div>
+                      <div className="manguera-item__nombre">{etiquetaOpcion(opcion)}</div>
+                      {leida && lectura && (
+                        <div className="manguera-item__resumen">
+                          {`${nfMiles.format(lectura.lectura_final - lectura.lectura_inicial)} ${unidadDeOpcion(opcion).corto}`}
+                        </div>
+                      )}
                     </div>
+                  </div>
+                  {!leida && !esEdicion && (
+                    <button
+                      type="button"
+                      className="btn btn--primary btn--sm"
+                      onClick={() => seleccionarOpcion(opcion)}
+                      disabled={cargando || subiendoFoto}
+                    >
+                      Tomar lectura
+                    </button>
                   )}
                 </div>
-              </div>
-              {!leida && !esEdicion && (
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
-                  onClick={() => seleccionarManguera(m)}
-                  disabled={cargando || subiendoFoto}
-                >
-                  Tomar lectura
-                </button>
-              )}
-            </div>
-          );
-        })}
-        {mangueras.length === 0 && (
-          <div className="empty-state">No hay mangueras configuradas para esta isla.</div>
+              );
+            })}
+          </div>
+        ))}
+        {opciones.length === 0 && (
+          <div className="empty-state">No hay medidores configurados para esta isla.</div>
         )}
       </div>
 
-      {mangueraActiva && mangueraSeleccionada && (
+      {medidorActivo && opcionSeleccionada && (
         <div className="modal-overlay" onClick={cancelar}>
           <div className="modal modal--form" onClick={(e) => e.stopPropagation()}>
             <div className="modal__header">
               <h3 className="modal__title">
                 {esEdicion ? "Editar lectura — " : ""}
-                Manguera {mangueraSeleccionada.id} &mdash; {mangueraSeleccionada.nombre_combustible || mangueraSeleccionada.codigo_combustible}
+                {etiquetaOpcion(opcionSeleccionada)}
               </h3>
               <button
                 ref={cancelarRef}
@@ -227,7 +311,7 @@ export default function FormularioLectura({
             <form onSubmit={manejarSubmit}>
               <div className="form-grid">
                 <div className="field">
-                  <label htmlFor="lectura_inicial">Lectura inicial ({unidadDeManguera(mangueraSeleccionada).nombre.toLowerCase()})</label>
+                  <label htmlFor="lectura_inicial">Lectura inicial ({unidadDeOpcion(opcionSeleccionada).nombre.toLowerCase()})</label>
                   <InputMiles
                     id="lectura_inicial"
                     step="0.01"
@@ -239,7 +323,7 @@ export default function FormularioLectura({
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="lectura_final">Lectura final ({unidadDeManguera(mangueraSeleccionada).nombre.toLowerCase()})</label>
+                  <label htmlFor="lectura_final">Lectura final ({unidadDeOpcion(opcionSeleccionada).nombre.toLowerCase()})</label>
                   <InputMiles
                     id="lectura_final"
                     step="0.01"

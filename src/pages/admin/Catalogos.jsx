@@ -9,7 +9,19 @@ const CATALOGOS = [
     titulo: "Islas",
     apiResource: api.islas,
     idField: "id",
-    campos: [{ key: "id", label: "ID (número de isla)", type: "number" }],
+    campos: [
+      { key: "id", label: "ID (número de isla)", type: "number" },
+      {
+        key: "modo_lectura",
+        label: "Modo de lectura",
+        type: "select",
+        opciones: [
+          { value: "manguera", label: "Manguera" },
+          { value: "combustible", label: "Combustible" },
+        ],
+        valorInicial: "manguera",
+      },
+    ],
   },
   {
     key: "operarios",
@@ -90,6 +102,25 @@ const CATALOGOS = [
       { key: "id", label: "ID", type: "number" },
       { key: "isla", label: "Isla", type: "number" },
       { key: "codigo_combustible", label: "Código de combustible", type: "text" },
+    ],
+  },
+  {
+    key: "modos-medicion",
+    titulo: "Modos de medición (excepciones)",
+    apiResource: api.modosMedicion,
+    idField: "id",
+    campos: [
+      { key: "isla", label: "Isla", type: "select-islas" },
+      { key: "codigo_combustible", label: "Código de combustible", type: "text" },
+      {
+        key: "modo_lectura",
+        label: "Modo de lectura",
+        type: "select",
+        opciones: [
+          { value: "manguera", label: "Manguera" },
+          { value: "combustible", label: "Combustible" },
+        ],
+      },
     ],
   },
   {

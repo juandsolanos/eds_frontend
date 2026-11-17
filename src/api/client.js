@@ -233,21 +233,23 @@ export const api = {
     }),
 
   subirFotoLectura: (token, archivo) =>
-    requestArchivo("/api/lecturas-mangueras/foto", { archivo, token }),
+    requestArchivo("/api/lecturas/foto", { archivo, token }),
   crearLectura: (token, datos) =>
-    request("/api/lecturas-mangueras/", { method: "POST", token, body: datos }),
+    request("/api/lecturas/", { method: "POST", token, body: datos }),
   actualizarLectura: (token, id, datos) =>
-    request(`/api/lecturas-mangueras/${id}`, { method: "PUT", token, body: datos }),
+    request(`/api/lecturas/${id}`, { method: "PUT", token, body: datos }),
   eliminarLectura: (token, id, comentarios) =>
-    request(`/api/lecturas-mangueras/${id}`, {
+    request(`/api/lecturas/${id}`, {
       method: "DELETE",
       token,
       body: comentarios ? { comentarios } : {},
     }),
   listarLecturas: (token, turnoId, opts) =>
-    request(`/api/lecturas-mangueras/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
+    request(`/api/lecturas/?turno_id=${encodeURIComponent(turnoId)}`, { token, ...opts }),
   listarLecturasPorTurno: (token, turnoId, opts) =>
-    request(`/api/lecturas-mangueras/turno/${encodeURIComponent(turnoId)}`, { token, ...opts }),
+    request(`/api/lecturas/turno/${encodeURIComponent(turnoId)}`, { token, ...opts }),
+  listarMedidoresCombustible: (token, isla, opts) =>
+    request(`/api/lecturas/medidores-combustible?isla=${encodeURIComponent(isla)}`, { token, ...opts }),
 
   crearVenta: (token, datos) =>
     request("/api/productos-unidad-ventas/", { method: "POST", token, body: datos }),
@@ -371,6 +373,7 @@ export const api = {
   productosGranel: crudEndpoints("/api/productos-granel"),
   productosUnidad: crudEndpoints("/api/productos-unidad"),
   mangueras: crudEndpoints("/api/mangueras"),
+  modosMedicion: crudEndpoints("/api/modos-medicion"),
   bodegas: crudEndpoints("/api/bodegas"),
   tiposTransaccion: crudEndpoints("/api/tipos-transaccion"),
   tareas: crudEndpoints("/api/tareas"),

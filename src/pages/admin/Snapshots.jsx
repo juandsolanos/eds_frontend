@@ -421,14 +421,15 @@ export default function Snapshots() {
               </table>
             )}
 
-            <h4>Lecturas por manguera</h4>
-            {detalle.mangueras.length === 0 ? (
+            <h4>Medidores</h4>
+            {(detalle.medidores || []).length === 0 ? (
               <div className="empty-state">Sin lecturas este día.</div>
             ) : (
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Manguera</th>
+                    <th>Tipo</th>
+                    <th>Medidor</th>
                     <th>Isla</th>
                     <th>Combustible</th>
                     <th>Lecturas</th>
@@ -437,9 +438,10 @@ export default function Snapshots() {
                   </tr>
                 </thead>
                 <tbody>
-                  {detalle.mangueras.map((m) => (
-                    <tr key={m.manguera_id}>
-                      <td className="mono">{m.manguera_id}</td>
+                  {(detalle.medidores || []).map((m) => (
+                    <tr key={`${m.tipo}-${m.isla}-${m.manguera_id ?? m.codigo_combustible}`}>
+                      <td>{m.tipo === "combustible" ? "Combustible" : "Manguera"}</td>
+                      <td className="mono">{m.manguera_id ?? "—"}</td>
                       <td className="mono">{m.isla}</td>
                       <td>{m.codigo_combustible}</td>
                       <td className="mono">{formatCant(m.num_lecturas)}</td>
@@ -496,9 +498,9 @@ export default function Snapshots() {
                   <table className="table">
                     <tbody>
                       <tr>
-                        <td>Mangueras + Complementarios − Consumos = Total ventas</td>
+                        <td>Lecturas + Complementarios − Consumos = Total ventas</td>
                         <td className="mono">
-                          {formatMoney(detalle.ventas_mangueras_valor)} +{" "}
+                          {formatMoney(detalle.ventas_lecturas_valor)} +{" "}
                           {formatMoney(detalle.ventas_complementarios_valor)} −{" "}
                           {formatMoney(detalle.consumos_valor)} ={" "}
                           <strong>{formatMoney(detalle.total_ventas)}</strong>
@@ -572,7 +574,7 @@ export default function Snapshots() {
                 <th>Fecha</th>
                 <th>Estado</th>
                 <th>Total combustible</th>
-                <th>Mangueras</th>
+                <th>Mediciones</th>
                 <th>Tipos transacción</th>
                 <th>Turnos</th>
                 <th></th>
@@ -589,7 +591,7 @@ export default function Snapshots() {
                     {formatVol(s.total_combustible_galones)} gal ·{" "}
                     {formatMoney(s.total_combustible_valor)}
                   </td>
-                  <td className="mono">{formatCant(s.num_mangueras)}</td>
+                  <td className="mono">{formatCant(s.num_medidores)}</td>
                   <td className="mono">{formatCant(s.num_tipos_transaccion)}</td>
                   <td className="mono">{formatCant(s.num_turnos)}</td>
                   <td>

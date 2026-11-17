@@ -21,7 +21,6 @@ export default function Registros() {
   const [trazabilidad, setTrazabilidad] = useState([]);
 
   const [productosGranel, setProductosGranel] = useState([]);
-  const [mangueras, setMangueras] = useState([]);
   const [operarios, setOperarios] = useState([]);
   const [error, setError] = useState(null);
 
@@ -39,7 +38,6 @@ export default function Registros() {
     const { signal } = ctrl;
     cargarTurnos({ signal });
     api.listarProductosGranel(token, undefined, { signal }).then(setProductosGranel).catch(() => {});
-    api.listarMangueras(token, undefined, { signal }).then(setMangueras).catch(() => {});
     api.operarios.listar(token, { signal }).then(setOperarios).catch(() => setOperarios([]));
     return () => ctrl.abort();
   }, [token, cargarTurnos]);
@@ -74,9 +72,8 @@ export default function Registros() {
 
   const granelUnidadPorCodigo = new Map((productosGranel || []).map((p) => [String(p.codigo), p.unidad]));
   function unidadCortoLectura(lectura) {
-    const manguera = mangueras.find((m) => m.id === Number(lectura.manguera_id));
-    const codigo = manguera ? String(manguera.codigo_combustible) : null;
-    return codigo ? unidadGranel(granelUnidadPorCodigo.get(codigo)).corto : "gal";
+    const codigo = lectura?.codigo_combustible;
+    return codigo ? unidadGranel(granelUnidadPorCodigo.get(String(codigo))).corto : "gal";
   }
 
   return (
@@ -149,11 +146,16 @@ export default function Registros() {
           </div>
 
           <h4 style={{ color: "var(--text-muted)", fontWeight: 500, fontSize: "0.85rem" }}>
-            LECTURAS DE MANGUERA
+            LECTURAS
           </h4>
           <RegistrosTabla
             columnas={[
-              { key: "manguera_id", label: "Manguera" },
+              {
+                key: "medidor",
+                label: "Medidor",
+                render: (f) =>
+                  f.tipo === "combustible" ? `Combustible ${f.codigo_combustible}` : `Manguera ${f.manguera_id}`,
+              },
               {
                 key: "volumen",
                 label: "Volumen",

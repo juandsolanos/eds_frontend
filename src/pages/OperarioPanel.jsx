@@ -28,7 +28,7 @@ const CAMPOS_CLIENTES = [
 ];
 
 const TABS = [
-  { key: "lecturas", label: "Lecturas de manguera" },
+  { key: "lecturas", label: "Lecturas" },
   { key: "ventas", label: "Ventas de complementarios" },
   { key: "pagos", label: "Crédito" },
   { key: "clientes", label: "Clientes" },
@@ -57,6 +57,7 @@ export default function OperarioPanel() {
   const [turnos, setTurnos] = useState([]);
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null);
   const [mangueras, setMangueras] = useState([]);
+  const [combustibles, setCombustibles] = useState([]);
   const [productosGranel, setProductosGranel] = useState([]);
   const [productos, setProductos] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -219,11 +220,21 @@ export default function OperarioPanel() {
     const ctrl = new AbortController();
     const { signal } = ctrl;
     if (turnoSeleccionado) {
-      api.listarManguerasPorIsla(token, turnoSeleccionado.isla, { signal })
-        .then(setMangueras)
-        .catch(() => setMangueras([]));
+      Promise.all([
+        api.listarManguerasPorIsla(token, turnoSeleccionado.isla, { signal }),
+        api.listarMedidoresCombustible(token, turnoSeleccionado.isla, { signal }),
+      ])
+        .then(([mangueras, medidores]) => {
+          setMangueras(mangueras);
+          setCombustibles(medidores);
+        })
+        .catch(() => {
+          setMangueras([]);
+          setCombustibles([]);
+        });
     } else {
       setMangueras([]);
+      setCombustibles([]);
     }
     return () => ctrl.abort();
   }, [token, turnoSeleccionado]);
@@ -690,10 +701,13 @@ export default function OperarioPanel() {
   const tabsVisibles = modoAdmin ? TABS.filter((t) => t.key !== "tareas") : TABS;
 
   const granelUnidadPorCodigo = new Map((productosGranel || []).map((p) => [String(p.codigo), p.unidad]));
-  function unidadCortoDeManguera(mangueraId) {
-    const manguera = mangueras.find((m) => m.id === Number(mangueraId));
-    const codigo = manguera ? String(manguera.codigo_combustible) : null;
-    return codigo ? unidadGranel(granelUnidadPorCodigo.get(codigo)).corto : "gal";
+  function nombreMedidorLectura(lectura) {
+    if (lectura?.tipo === "combustible") return `Combustible ${lectura.codigo_combustible}`;
+    return `Manguera ${lectura?.manguera_id}`;
+  }
+  function unidadCortoLectura(lectura) {
+    const codigo = lectura?.codigo_combustible;
+    return codigo ? unidadGranel(granelUnidadPorCodigo.get(String(codigo))).corto : "gal";
   }
 
   // Los tipos de transacción y su signo vienen del backend ("TiposTransaccion").
@@ -882,6 +896,7 @@ export default function OperarioPanel() {
                 <FormularioLectura
                   key={editandoLectura ? `editar-${editandoLectura.id}` : "nuevo"}
                   mangueras={mangueras}
+                  combustibles={combustibles}
                   lecturas={lecturas}
                   productosGranel={productosGranel}
                   onRegistrar={manejarRegistrarLectura}
@@ -893,12 +908,16 @@ export default function OperarioPanel() {
                 <div style={{ marginTop: "var(--spacing-6)" }}>
                   <RegistrosTabla
                     columnas={[
-                      { key: "manguera_id", label: "Manguera" },
+                      {
+                        key: "medidor",
+                        label: "Medidor",
+                        render: (f) => nombreMedidorLectura(f),
+                      },
                       {
                         key: "cantidad",
                         label: "Volumen",
                         render: (f) =>
-                          `${formatVol(f.lectura_final - f.lectura_inicial)} ${unidadCortoDeManguera(f.manguera_id)}`,
+                          `${formatVol(f.lectura_final - f.lectura_inicial)} ${unidadCortoLectura(f)}`,
                       },
                       { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                       {
@@ -1207,18 +1226,22 @@ export default function OperarioPanel() {
             </div>
 
             <div style={{ marginBottom: "var(--spacing-6)" }}>
-              <h4 style={{ marginBottom: "var(--spacing-3)" }}>Lecturas de mangueras</h4>
+              <h4 style={{ marginBottom: "var(--spacing-3)" }}>Lecturas</h4>
               {lecturasRevision.length === 0 ? (
                 <div className="empty-state">No hay lecturas registradas para este turno.</div>
               ) : (
                 <RegistrosTabla
                   columnas={[
-                    { key: "manguera_id", label: "Manguera" },
+                    {
+                      key: "medidor",
+                      label: "Medidor",
+                      render: (f) => nombreMedidorLectura(f),
+                    },
                     {
                       key: "cantidad",
                       label: "Volumen",
                       render: (f) =>
-                        `${formatVol(f.lectura_final - f.lectura_inicial)} ${unidadCortoDeManguera(f.manguera_id)}`,
+                        `${formatVol(f.lectura_final - f.lectura_inicial)} ${unidadCortoLectura(f)}`,
                     },
                     { key: "valor_total", label: "Valor", mono: true, render: (f) => formatMoney(f.valor_total) },
                   ]}
@@ -1453,7 +1476,6 @@ export default function OperarioPanel() {
         clientes={clientes}
         productos={productos}
         productosGranel={productosGranel}
-        mangueras={mangueras}
         modoCierre={resumenEnCierre}
         cargando={cargandoAccion}
         onConfirmarCierre={manejarCerrarTurno}
