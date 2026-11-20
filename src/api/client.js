@@ -166,6 +166,36 @@ async function requestArchivo(path, { archivo, token, signal, timeout = TIMEOUT_
   });
 }
 
+async function descargarArchivo(path, { token, nombre, signal } = {}) {
+  const { signal: signalFinal, limpiar } = signalConTimeout(signal, TIMEOUT_MS);
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: signalFinal,
+    });
+    if (!response.ok) {
+      if (response.status === 401 && onUnauthorized) onUnauthorized();
+      const leida = await leerRespuesta(response);
+      throw new ApiError(
+        response.status,
+        mensajeDeError(response, leida),
+        leida.esJSON ? leida.datos : null
+      );
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = nombre;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    URL.revokeObjectURL(url);
+  } finally {
+    limpiar();
+  }
+}
+
 // Helper para los catálogos: todos siguen el mismo patrón REST
 // (GET /, GET /{id}, POST /, PUT /{id}, DELETE /{id}), así que en vez de
 // repetir 5 funciones casi idénticas por catálogo, generamos las llamadas
@@ -310,6 +340,27 @@ export const api = {
     request("/api/productos-unidad-movimientos/transferir", { method: "POST", token, body: datos }),
   ajustarInventario: (token, datos) =>
     request("/api/productos-unidad-movimientos/ajustar", { method: "POST", token, body: datos }),
+
+  precios: {
+    listar: (token, filtros = {}, opts) => {
+      const params = new URLSearchParams();
+      if (filtros.tipo_producto) params.set("tipo_producto", filtros.tipo_producto);
+      if (filtros.codigo) params.set("codigo", filtros.codigo);
+      if (filtros.solo_vigentes) params.set("solo_vigentes", "true");
+      const qs = params.toString();
+      return request(`/api/precios/${qs ? `?${qs}` : ""}`, { token, ...opts });
+    },
+    definir: (token, datos, opts) =>
+      request("/api/precios/", { method: "POST", token, body: datos, ...opts }),
+    importarExcel: (token, archivo, opts) =>
+      requestArchivo("/api/precios/importar-excel", { archivo, token, ...opts }),
+    descargarPlantilla: (token, opts) =>
+      descargarArchivo("/api/precios/plantilla-excel", {
+        token,
+        nombre: "plantilla_precios.xlsx",
+        ...opts,
+      }),
+  },
 
   listarHistorialPrecios: (token, codigo, opts) =>
     request(

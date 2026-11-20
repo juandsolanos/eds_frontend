@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: "/admin/estados-cuenta", label: "Estados de cuenta" },
   { to: "/admin/alertas", label: "Alertas" },
   { to: "/admin/catalogos", label: "Configuración", soloSuperadmin: true },
+  { to: "/admin/precios", label: "Precios", soloSuperadmin: true },
   { to: "/admin/historial-precios", label: "Historial de precios" },
   { to: "/admin/trazabilidad", label: "Trazabilidad" },
 ];

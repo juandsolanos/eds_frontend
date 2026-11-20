@@ -59,6 +59,22 @@ export default function HistorialPrecios() {
             render: (h) => formatMoney(h.precio_nuevo),
           },
           { key: "fecha_cambio", label: "Fecha del cambio", render: (h) => formatoFecha(h.fecha_cambio) },
+          { key: "fecha_efectiva", label: "Fecha efectiva" },
+          { key: "origen", label: "Origen" },
+          {
+            key: "actor",
+            label: "Registrado por",
+            render: (h) => (h.actor_tipo ? `${h.actor_tipo}: ${h.actor_id || "—"}` : "—"),
+          },
+          { key: "estado", label: "Estado" },
+          {
+            key: "detalles",
+            label: "Detalles",
+            render: (h) =>
+              h.detalles && Object.keys(h.detalles).length > 0
+                ? JSON.stringify(h.detalles)
+                : "—",
+          },
         ]}
         filas={historial}
         vacio="Sin cambios de precio registrados."

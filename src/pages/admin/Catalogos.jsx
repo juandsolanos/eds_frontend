@@ -68,7 +68,13 @@ const CATALOGOS = [
     campos: [
       { key: "codigo", label: "Código", type: "text" },
       { key: "nombre", label: "Nombre", type: "text" },
-      { key: "precio_unitario", label: "Precio unitario", type: "number", format: "money" },
+      {
+        key: "precio_unitario",
+        label: "Precio inicial",
+        type: "number",
+        format: "money",
+        soloLecturaAlEditar: true,
+      },
       {
         key: "unidad",
         label: "Unidad de medida",
@@ -90,7 +96,13 @@ const CATALOGOS = [
       { key: "codigo", label: "Código", type: "text" },
       { key: "tipo", label: "Tipo", type: "text" },
       { key: "nombre", label: "Nombre", type: "text" },
-      { key: "precio_unitario", label: "Precio unitario", type: "number", format: "money" },
+      {
+        key: "precio_unitario",
+        label: "Precio inicial",
+        type: "number",
+        format: "money",
+        soloLecturaAlEditar: true,
+      },
     ],
   },
   {

@@ -7,6 +7,7 @@ import Catalogos from "./pages/admin/Catalogos";
 import Registros from "./pages/admin/Registros";
 import Inventario from "./pages/admin/Inventario";
 import HistorialPrecios from "./pages/admin/HistorialPrecios";
+import Precios from "./pages/admin/Precios";
 import Trazabilidad from "./pages/admin/Trazabilidad";
 import Turnos from "./pages/admin/Turnos";
 import Alertas from "./pages/admin/Alertas";
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="inventario" element={<Inventario />} />
             <Route path="estados-cuenta" element={<EstadosCuenta />} />
             {esSuperadmin && <Route path="catalogos" element={<Catalogos />} />}
+            {esSuperadmin && <Route path="precios" element={<Precios />} />}
             <Route path="historial-precios" element={<HistorialPrecios />} />
             <Route path="trazabilidad" element={<Trazabilidad />} />
           </Route>

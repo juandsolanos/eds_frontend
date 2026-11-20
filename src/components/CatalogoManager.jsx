@@ -10,7 +10,8 @@ import { formatMoney } from "../utils/format";
  * (eso vive en el backend); solo arma el formulario y la tabla a partir
  * de la configuración de columnas que le pasa cada pantalla.
  *
- * campos: [{ key, label, type ('text'|'number'|'select'|'multiselect-credito'),
+ *   campos: [{ key, label, type ('text'|'number'|'date'|'select'|'multiselect-credito'),
+
  *           idField (true si es la PK, no editable al actualizar), required }]
  */
 export default function CatalogoManager({
@@ -225,11 +226,14 @@ export default function CatalogoManager({
     return (
       <input
         id={campo.key}
-        type={campo.type === "number" ? "number" : "text"}
+        type={campo.type === "number" ? "number" : campo.type === "date" ? "date" : "text"}
         step={campo.type === "number" ? "0.01" : undefined}
         value={form[campo.key] ?? ""}
         onChange={(e) => setForm({ ...form, [campo.key]: e.target.value })}
-        disabled={campo.key === idField && editando !== null}
+        disabled={
+          (campo.key === idField && editando !== null) ||
+          (campo.soloLecturaAlEditar && editando !== null)
+        }
         required={campo.required !== false}
       />
     );
